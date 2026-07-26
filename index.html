@@ -289,6 +289,14 @@ h2{
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
 }
 .toast.on{opacity:1;transform:translateX(-50%);}
+.age{
+  position:absolute; top:7px; left:7px; z-index:2;
+  font-family:var(--display); font-size:9px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; padding:3px 7px; border-radius:999px;
+  background:color-mix(in srgb, var(--bg) 86%, transparent);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:var(--ink-2);
+}
+.age.cold{background:var(--violet);color:#fff;}
 .stickbar{
   position:sticky; bottom:0; z-index:5;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -378,7 +386,12 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
     <h1 id="closetCount">Nothing in here yet</h1>
   </div>
   <div class="chips" id="catFilter"></div>
-  <div class="wrap" style="margin-top:14px">
+  <div class="wrap" style="margin-top:12px">
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn ghost sm" id="packOpen" style="width:100%">Pack a trip</button>
+      <button class="btn ghost sm" id="gapsOpen" style="width:100%">What's missing?</button>
+    </div>
+    <p class="mini" id="closetStat" style="margin:0 0 12px"></p>
     <div class="grid" id="closetGrid"></div>
   </div>
 </section>
@@ -550,6 +563,51 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
     <span class="mini" id="pickCount"></span>
     <button class="btn sm" id="pickDone">Done</button>
   </div>
+</div>
+
+<div class="sheet" id="sheet-pack">
+  <div class="grab"></div>
+  <div class="spread" style="margin-bottom:6px">
+    <h2 style="min-width:0">Pack a trip</h2>
+    <button class="xbtn" id="closePack" aria-label="Close">✕</button>
+  </div>
+  <div class="stack" style="margin-top:10px">
+    <div>
+      <span class="label">Where</span>
+      <input class="field" id="packCity" placeholder="Tokyo" autocomplete="off" enterkeyhint="search">
+      <button class="btn ghost sm" id="packSearchBtn" style="width:100%;margin-top:10px">Search</button>
+      <div id="packHitsBox" style="margin-top:10px"></div>
+      <p class="mini" id="packWhere" style="margin:8px 0 0"></p>
+    </div>
+    <div>
+      <span class="label">Leaving</span>
+      <input class="field" id="packDate" type="date">
+    </div>
+    <div>
+      <span class="label">How many days</span>
+      <div class="seg" id="packDays">
+        <button data-v="2">2</button><button data-v="3">3</button>
+        <button data-v="5" aria-pressed="true">5</button><button data-v="7">7</button><button data-v="10">10</button>
+      </div>
+    </div>
+    <div>
+      <span class="label">What you'll be doing</span>
+      <div class="chips" id="packOccs" style="padding:0"></div>
+    </div>
+    <button class="btn" id="packGo">Pack it</button>
+    <div id="packOut"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-gaps">
+  <div class="grab"></div>
+  <div class="spread" style="margin-bottom:6px">
+    <h2 style="min-width:0">What's missing</h2>
+    <button class="xbtn" id="closeGaps" aria-label="Close">✕</button>
+  </div>
+  <p class="mini" style="margin:0 0 14px">The pieces that would unlock the most new outfits from what you already own.</p>
+  <button class="btn" id="gapsGo">Find the gaps</button>
+  <div id="gapsOut" style="margin-top:16px"></div>
 </div>
 
 <div class="sheet" id="sheet-loc">
@@ -1064,32 +1122,54 @@ function renderToday(){
   $('#reroll').onclick = renderToday;
   $('#howBtn').onclick = () => howToWear(set);
   $('#wearIt').onclick = () => {
-    const now = Date.now();
-    set.forEach(i => { const it = S.items.find(x => x.id === i.id); if (it) it.lastWorn = now; });
-    S.looks.unshift({ id: uid(), itemIds: set.map(i => i.id), occasion: occ.id, ts: now });
-    S.looks = S.looks.slice(0, 40);
-    save(); toast('Logged — it will rest for a few days');
-    renderSaved();
+    logWear(set);
+    toast('Logged — it will rest for a few days');
   };
+}
+
+const DAY = 864e5;
+const daysSince = i => i.lastWorn ? Math.floor((Date.now() - i.lastWorn) / DAY) : null;
+const isNeglected = i => { const d = daysSince(i); return d === null || d >= 30; };
+
+function ageBadge(i){
+  const d = daysSince(i);
+  if (d === null) return `<span class="age">unworn</span>`;
+  if (d >= 60) return `<span class="age cold">${Math.floor(d/30)}mo</span>`;
+  if (d >= 30) return `<span class="age cold">${d}d</span>`;
+  if (d >= 14) return `<span class="age">${d}d</span>`;
+  return '';
 }
 
 function renderCloset(){
   const n = S.items.length;
   $('#closetCount').textContent = n === 0 ? 'Nothing in here yet' : `${n} piece${n > 1 ? 's' : ''}`;
   const cur = S.catFilter || 'all';
+  const cold = S.items.filter(isNeglected).length;
+
   $('#catFilter').innerHTML =
     `<button class="chip" data-c="all" aria-pressed="${cur === 'all'}">All</button>` +
+    (cold ? `<button class="chip" data-c="cold" aria-pressed="${cur === 'cold'}">Neglected <span style="opacity:.5">${cold}</span></button>` : '') +
     CATS.map(c => {
       const k = S.items.filter(i => i.cat === c.id).length;
       return `<button class="chip" data-c="${c.id}" aria-pressed="${cur === c.id}">${esc(c.label)}${k ? ` <span style="opacity:.5">${k}</span>` : ''}</button>`;
     }).join('');
 
-  const list = cur === 'all' ? S.items : S.items.filter(i => i.cat === cur);
+  if (n){
+    const worn = S.items.filter(i => i.lastWorn).length;
+    $('#closetStat').textContent = cold
+      ? `${cold} piece${cold === 1 ? '' : 's'} you haven't reached for in a while · ${worn} of ${n} worn since you started logging`
+      : `${worn} of ${n} worn recently — you're using the whole closet`;
+  } else $('#closetStat').textContent = '';
+
+  let list = S.items;
+  if (cur === 'cold') list = S.items.filter(isNeglected).sort((a, b) => (b.lastWorn ? 1 : 0) - (a.lastWorn ? 1 : 0));
+  else if (cur !== 'all') list = S.items.filter(i => i.cat === cur);
+
   $('#closetGrid').innerHTML =
     `<label class="tile add" for="fileIn" aria-label="Add a piece">
        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
      </label>` +
-    list.map(i => `<button class="tile" data-id="${i.id}"><img src="${i.img}" alt="${esc(i.name)}" loading="lazy"><span class="nm">${esc(i.name)}</span></button>`).join('');
+    list.map(i => `<button class="tile" data-id="${i.id}">${ageBadge(i)}<img src="${i.img}" alt="${esc(i.name)}" loading="lazy"><span class="nm">${esc(i.name)}</span></button>`).join('');
 }
 
 function renderSaved(){
@@ -1147,7 +1227,9 @@ function renderBuild(){
     wrap.innerHTML = `<p class="mini" style="margin:0">Nothing picked yet.</p>`;
   } else {
     const items = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean);
-    wrap.innerHTML = `<div class="grid">${items.map(i => `<div class="tile"><img src="${i.img}" alt=""><span class="nm">${esc(i.name)}</span></div>`).join('')}</div>`;
+    wrap.innerHTML = `<div class="grid">${items.map(i => `<div class="tile"><img src="${i.img}" alt=""><span class="nm">${esc(i.name)}</span></div>`).join('')}</div>
+      <button class="btn ghost sm" id="logFit" style="width:100%;margin-top:12px">Wore this</button>`;
+    $('#logFit').onclick = () => { logWear(items); toast('Logged'); };
   }
 }
 
@@ -1423,6 +1505,7 @@ $('#tempSeg').addEventListener('click', e => {
 $('#catFilter').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
   S.catFilter = b.dataset.c; renderCloset();
+  b.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
 });
 
 $('#closetGrid').addEventListener('click', e => {
@@ -1541,7 +1624,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.4';
+const BUILD = 'v2.5';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1582,6 +1665,7 @@ $('#importIn').addEventListener('change', async e => {
     const n = d.items.length;
     if (!confirm(`Restore ${n} piece${n === 1 ? '' : 's'} from this backup? Anything currently in your closet is replaced.`)) return;
     S.items = d.items; S.samples = d.samples || []; S.looks = d.looks || []; S.picked = [];
+    S.items.forEach(i => { if (i.wears == null) i.wears = 0; });
     save(); renderCloset(); renderTone(); renderSaved(); renderToday();
     toast(`Restored ${n} piece${n === 1 ? '' : 's'}`);
   } catch(err){ toast("That doesn't look like a closet backup"); }
@@ -1904,6 +1988,219 @@ No flattery, no restating what the items are.`;
     out.scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
 }
+
+/* ============================================================
+   WEAR LOG — one path, used by Today and Build
+   ============================================================ */
+function logWear(set){
+  const now = Date.now();
+  set.forEach(i => {
+    const it = S.items.find(x => x.id === i.id);
+    if (it){ it.lastWorn = now; it.wears = (it.wears || 0) + 1; }
+  });
+  S.looks.unshift({ id: uid(), itemIds: set.map(i => i.id), occasion: S.occasion, ts: now });
+  S.looks = S.looks.slice(0, 60);
+  save(); renderSaved(); renderCloset();
+}
+
+/* ============================================================
+   PACKING — forecast for the destination, then a capsule
+   ============================================================ */
+let packGeo = null, packHits = [], packPlace = '';
+const packOccs = new Set(['coffee','dinner']);
+
+function renderPackOccs(){
+  $('#packOccs').innerHTML = OCCASIONS.map(o =>
+    `<button class="chip" data-o="${o.id}" aria-pressed="${packOccs.has(o.id)}">${esc(o.name)}</button>`
+  ).join('');
+}
+$('#packOccs').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  const id = b.dataset.o;
+  if (packOccs.has(id)) packOccs.delete(id); else packOccs.add(id);
+  renderPackOccs();
+});
+$('#packDays').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) fillSeg('#packDays', b.dataset.v);
+});
+
+async function packSearch(){
+  const q = $('#packCity').value.trim();
+  if (!q) return toast('Type a destination first');
+  busy(true, 'Searching\u2026');
+  try {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=' + encodeURIComponent(q));
+    packHits = (await r.json()).results || [];
+    $('#packHitsBox').innerHTML = packHits.length
+      ? packHits.map((c, i) => `<button class="btn ghost sm" data-ph="${i}" style="width:100%;margin-bottom:8px">${esc([c.name, c.admin1, c.country_code].filter(Boolean).join(', '))}</button>`).join('')
+      : '<p class="mini" style="margin:0">No matches.</p>';
+  } catch(e){ toast('Search failed'); }
+  finally { busy(false); }
+}
+$('#packSearchBtn').onclick = packSearch;
+$('#packCity').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); packSearch(); } });
+$('#packHitsBox').addEventListener('click', e => {
+  const b = e.target.closest('[data-ph]'); if (!b) return;
+  const c = packHits[+b.dataset.ph]; if (!c) return;
+  packGeo = { la:+c.latitude.toFixed(3), lo:+c.longitude.toFixed(3) };
+  packPlace = [c.name, c.admin1, c.country_code].filter(Boolean).join(', ');
+  $('#packHitsBox').innerHTML = '';
+  $('#packCity').value = '';
+  $('#packWhere').textContent = 'Packing for ' + packPlace;
+});
+
+/* Forecast only reaches ~16 days out. Past that, let Claude reason from
+   typical climate for the month rather than pretending we know. */
+async function tripWeather(days){
+  const start = $('#packDate').value ? new Date($('#packDate').value + 'T12:00:00') : new Date();
+  const out = Math.round((start - new Date()) / DAY);
+  const month = start.toLocaleDateString('en-US', { month:'long' });
+  if (out < 0 || out + days > 16) return { text: `Typical ${month} conditions for ${packPlace} \u2014 use your climate knowledge, the forecast doesn't reach that far.`, month };
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + packGeo.la + '&longitude=' + packGeo.lo +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
+      '&temperature_unit=fahrenheit&timezone=auto&forecast_days=' + Math.min(16, out + days));
+    const D = (await r.json()).daily || {};
+    const his = (D.temperature_2m_max || []).slice(out), los = (D.temperature_2m_min || []).slice(out);
+    const rain = Math.max.apply(null, (D.precipitation_probability_max || [0]).slice(out));
+    if (!his.length) return { text: `Typical ${month} conditions for ${packPlace}.`, month };
+    return { text: `Forecast: highs around ${Math.round(Math.max.apply(null, his))}\u00b0F, lows around ${Math.round(Math.min.apply(null, los))}\u00b0F` +
+      (rain >= 40 ? `, rain likely (${rain}% chance)` : '') + '.', month };
+  } catch(e){ return { text: `Typical ${month} conditions for ${packPlace}.`, month }; }
+}
+
+async function packTrip(){
+  if (!S.apiKey) return toast('Add an API key in the Me tab first');
+  if (!packGeo) return toast('Pick a destination first');
+  if (!packOccs.size) return toast('Pick at least one activity');
+  const days = +segStr('#packDays', '5');
+
+  busy(true, 'Checking the forecast\u2026');
+  const wx = await tripWeather(days);
+  busy(true, 'Packing\u2026');
+  try {
+    const prompt = `You are a sharp personal stylist packing a suitcase from your client's actual wardrobe.
+
+TRIP: ${days} days in ${packPlace}.
+WEATHER: ${wx.text}
+THEY'LL BE: ${[...packOccs].map(o => OCC[o].name).join(', ')}.
+
+THEIR WARDROBE:
+${S.items.map(describe).join('\\n')}
+
+Only use ids from that list. Never invent an item.
+
+Pack light: pieces should cross-combine so ${days} days come from far fewer than ${days} full outfits.
+Bottoms and layers repeat; tops and socks do not.
+
+Reply with ONLY this JSON, no prose or fences:
+{
+  "pack": ["id", ...],
+  "fits": [{"name": "short label like 'dinner night'", "ids": ["id", ...]}],
+  "note": "2-3 sentences: why this list, what does double duty, anything to buy or borrow"
+}
+
+Give at least ${Math.min(days, 5)} fits. Keep the pack list tight and justified.`;
+    let text;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1600); }
+    catch(e){
+      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1600);
+      else throw e;
+    }
+    const res = parseJSON(text);
+    const byId = id => S.items.find(i => i.id === id);
+    const packed = (res.pack || []).map(byId).filter(Boolean);
+    if (!packed.length) throw new Error('empty');
+
+    const fits = (res.fits || []).map(f => ({ name: f.name, items: (f.ids || []).map(byId).filter(Boolean) }))
+                                 .filter(f => f.items.length > 1);
+    $('#packOut').innerHTML =
+      `<div style="margin-top:6px"><span class="label">${packed.length} pieces \u00b7 ${days} days</span>
+        <div class="grid">${packed.map(i => `<div class="tile"><img src="${i.img}" alt=""><span class="nm">${esc(i.name)}</span></div>`).join('')}</div></div>` +
+      (res.note ? `<div class="note" style="margin-top:14px">${esc(res.note)}</div>` : '') +
+      (fits.length ? `<div style="margin-top:16px"><span class="label">Fits it makes</span>` +
+        fits.map(f => `<div style="margin-bottom:12px">
+          <div class="mini" style="margin-bottom:6px"><b>${esc(f.name)}</b></div>
+          <div style="display:flex;gap:6px;overflow-x:auto">${f.items.map(i =>
+            `<img src="${i.img}" alt="${esc(i.name)}" style="width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--line-2);flex:0 0 auto">`).join('')}</div>
+        </div>`).join('') + '</div>' : '');
+    $('#packOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  } catch(err){
+    const m = String(err.message || '');
+    toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
+          m === '429' ? 'Rate limited \u2014 try again shortly' : 'Packing failed \u2014 try again');
+  } finally { busy(false); }
+}
+$('#packGo').onclick = packTrip;
+$('#packOpen').onclick = () => {
+  renderPackOccs();
+  if (!$('#packDate').value) $('#packDate').value = new Date(Date.now() + 7 * DAY).toISOString().slice(0, 10);
+  $('#packWhere').textContent = packPlace ? 'Packing for ' + packPlace : '';
+  openSheet('#sheet-pack');
+};
+$('#closePack').onclick = closeSheets;
+
+/* ============================================================
+   SHOPPING GAPS
+   ============================================================ */
+async function findGaps(){
+  if (!S.apiKey) return toast('Add an API key in the Me tab first');
+  if (S.items.length < 8) return toast('Add a few more pieces first');
+  const tone = readTone(S.samples);
+  busy(true, 'Looking for gaps\u2026');
+  try {
+    const counts = CATS.map(c => `${c.label}: ${S.items.filter(i => i.cat === c.id).length}`).join(', ');
+    const prompt = `You are a sharp personal stylist reviewing a client's wardrobe for gaps.
+
+THEIR WARDROBE (${S.items.length} pieces \u2014 ${counts}):
+${S.items.map(describe).join('\\n')}
+
+${tone && tone.confidence > 0.4 ? `Their skin has a ${tone.undertone.toLowerCase()} undertone, ${tone.depth.toLowerCase()} depth.` : ''}
+They live in Los Angeles \u2014 mild most of the year, cool evenings, real heat in late summer.
+
+Find the 3-5 pieces that would unlock the most NEW outfits from what they already own.
+Not a wishlist. Not trend pieces. The specific missing links.
+
+Reply with ONLY this JSON, no prose or fences:
+{
+  "gaps": [{
+    "item": "specific piece, e.g. 'mid-wash straight leg denim'",
+    "why": "what it unlocks, under 20 words",
+    "unlocks": "how many existing pieces it would newly combine with, a number"
+  }],
+  "strength": "one sentence on what their wardrobe already does well",
+  "overweight": "one sentence on what they have too much of, if anything"
+}
+
+Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a jacket'.`;
+    let text;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1200); }
+    catch(e){
+      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1200);
+      else throw e;
+    }
+    const res = parseJSON(text);
+    const gaps = (res.gaps || []).filter(g => g.item);
+    if (!gaps.length) throw new Error('empty');
+    $('#gapsOut').innerHTML =
+      (res.strength ? `<div class="note" style="margin-bottom:14px">${esc(res.strength)}</div>` : '') +
+      gaps.map(g => `<div class="rrow" style="align-items:flex-start">
+        <div class="rmid">
+          <div style="font-size:15px"><b>${esc(g.item)}</b></div>
+          <div class="mini">${esc(g.why || '')}</div>
+        </div>
+        ${g.unlocks ? `<span class="age cold" style="position:static;flex:0 0 auto">+${esc(String(g.unlocks))}</span>` : ''}
+      </div>`).join('') +
+      (res.overweight ? `<p class="mini" style="margin:14px 2px 0"><b>Heads up:</b> ${esc(res.overweight)}</p>` : '');
+  } catch(err){
+    const m = String(err.message || '');
+    toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
+          m === '429' ? 'Rate limited \u2014 try again shortly' : 'Couldn\u2019t reach the stylist');
+  } finally { busy(false); }
+}
+$('#gapsGo').onclick = findGaps;
+$('#gapsOpen').onclick = () => { $('#gapsOut').innerHTML = ''; openSheet('#sheet-gaps'); };
+$('#closeGaps').onclick = closeSheets;
 
 /* ---- api key, kept on the phone and out of backups ---- */
 function renderKeyNote(){
