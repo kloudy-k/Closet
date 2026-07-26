@@ -381,11 +381,22 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
 
     <hr class="sep">
     <div class="card stack" style="gap:12px">
+      <h2>Backup</h2>
+      <p class="mini" style="margin:0">Your closet lives only on this phone. Export a copy before you clear Safari data or switch phones.</p>
+      <div class="row">
+        <button class="btn soft sm" id="exportBtn" style="width:100%">Export</button>
+        <label class="btn ghost sm" for="importIn" style="width:100%">Import</label>
+      </div>
+    </div>
+
+    <div class="card stack" style="gap:12px">
       <h2>Add to your Home Screen</h2>
       <p class="mini" style="margin:0">In Safari, tap the Share button, then <b>Add to Home Screen</b>. It opens full screen with no browser bar, works offline, and follows your phone's light/dark schedule.</p>
       <button class="btn ghost sm" id="wipeBtn" style="width:100%">Erase everything</button>
       <p class="mini" id="storeNote" style="margin:0"></p>
     </div>
+
+    <p class="mini" id="buildLine" style="text-align:center;margin:0 0 10px;opacity:.65"></p>
   </div>
 </section>
 
@@ -465,6 +476,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
 
 <input type="file" id="fileIn" class="filein" accept="image/*,image/heic,image/heif,.heic,.heif,.HEIC">
 <input type="file" id="toneIn" class="filein" accept="image/*,image/heic,image/heif,.heic,.heif,.HEIC">
+<input type="file" id="importIn" class="filein" accept="application/json,.json">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -589,7 +601,9 @@ function rgbToHsl(r, g, b){
   const s = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
   return { h, s, l };
 }
-const hex = ([r,g,b]) => '#' + [r,g,b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('');
+const hex = c => Array.isArray(c)
+  ? '#' + c.slice(0,3).map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('')
+  : '#888888';
 
 /* Is this piece effectively a neutral? Neutrals go with everything. */
 function isNeutral(rgb){
@@ -1177,10 +1191,12 @@ $('#fileIn').addEventListener('change', async e => {
   if (!f) return;
   try {
     const img = await loadImage(f);
-    pendingRGB = dominantColor(img);
-    pendingImg = shrink(img, 900, 0.78);
+    const rgb = dominantColor(img);
+    const dataUrl = shrink(img, 900, 0.78);
     if (img.close) img.close();
-    openItemSheet(null);
+    openItemSheet(null);          // this resets pending state...
+    pendingRGB = rgb;             // ...so the new photo goes on after
+    pendingImg = dataUrl;
     $('#itemPreviewWrap').classList.remove('hidden');
     $('#itemPreview').src = pendingImg;
     $('#itemSwatch').style.background = hex(pendingRGB);
@@ -1247,6 +1263,52 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
+const BUILD = 'v1.2 · 25 Jul 2026';
+
+/* Export the whole closet as one JSON file. On iOS the share sheet is the
+   nicest route (saves straight to Files); the anchor is the fallback. */
+async function exportData(){
+  const payload = { app:'marine-layer', build:BUILD, exported:new Date().toISOString(),
+                    items:S.items, samples:S.samples, looks:S.looks };
+  const blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
+  const name = `closet-backup-${new Date().toISOString().slice(0,10)}.json`;
+  try {
+    const file = new File([blob], name, { type:'application/json' });
+    if (navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:'Closet backup' });
+      return;
+    }
+  } catch(e){ if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('Backup saved');
+}
+
+$('#exportBtn').onclick = () => {
+  if (!S.items.length) return toast('Nothing to back up yet');
+  exportData().catch(() => toast("Couldn't export"));
+};
+
+$('#importIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const text = f.text ? await f.text() : await new Promise((res, rej) => {
+      const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsText(f);
+    });
+    const d = JSON.parse(text);
+    if (!d || !Array.isArray(d.items)) throw new Error('wrong shape');
+    const n = d.items.length;
+    if (!confirm(`Restore ${n} piece${n === 1 ? '' : 's'} from this backup? Anything currently in your closet is replaced.`)) return;
+    S.items = d.items; S.samples = d.samples || []; S.looks = d.looks || []; S.picked = [];
+    save(); renderCloset(); renderTone(); renderSaved(); renderToday();
+    toast(`Restored ${n} piece${n === 1 ? '' : 's'}`);
+  } catch(err){ toast("That doesn't look like a closet backup"); }
+});
+
 $('#wipeBtn').onclick = () => {
   if (!confirm('Erase your closet, samples and logged looks? This cannot be undone.')) return;
   S.items = []; S.samples = []; S.looks = []; S.picked = []; toneImg = null;
@@ -1262,6 +1324,7 @@ window.addEventListener('resize', () => { if (toneImg) drawTone(); });
    ============================================================ */
 (async function(){
   await load();
+  $('#buildLine').textContent = BUILD;
   renderOccasions();
   renderCloset(); renderTone(); renderSaved(); renderToday();
 })();
