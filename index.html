@@ -930,63 +930,8 @@ function explain(set, occ, tone){
 }
 
 /* ============================================================
-   FIGURE — a croquis drawn from the real colors of the outfit.
-   Not a render; a proportion read. Shows how the pieces stack,
-   where the eye breaks, and how much sock actually shows.
+   WEATHER — Open-Meteo, no key needed, CORS-friendly
    ============================================================ */
-const SOCK_H = { noshow: 0, ankle: 12, crew: 30, knee: 78 };
-
-function figureSVG(set){
-  const first = {};
-  set.forEach(i => { if (!first[i.cat]) first[i.cat] = i; });
-  const top = first.top, bot = first.bottom, shoe = first.shoes, sock = first.socks;
-  const layer = first.hoodie || first.zipup;
-  const isZip = !!first.zipup && !first.hoodie;
-
-  const tone = readTone(S.samples);
-  const skin = tone ? hex(tone.rgb) : '#C9A886';
-  const F = it => it ? hex(it.rgb) : 'none';
-  const dash = it => it ? 'none' : '4 4';
-  const edge = 'rgba(128,128,128,.55)';
-
-  const sockH = sock ? (SOCK_H[sock.len] != null ? SOCK_H[sock.len] : 30) : 0;
-  const ankleY = 392;
-  const sockTop = ankleY - sockH;
-
-  return `<svg viewBox="0 0 200 470" width="100%" style="max-width:230px;display:block;margin:0 auto">
-  <!-- head + neck -->
-  <circle cx="100" cy="36" r="21" fill="${skin}" stroke="${edge}" stroke-width="1"/>
-  <rect x="92" y="54" width="16" height="14" fill="${skin}"/>
-  <!-- arms -->
-  <rect x="47" y="72" width="13" height="104" rx="6" fill="${top ? F(top) : skin}" stroke="${edge}" stroke-width="1"/>
-  <rect x="140" y="72" width="13" height="104" rx="6" fill="${top ? F(top) : skin}" stroke="${edge}" stroke-width="1"/>
-  <rect x="47" y="176" width="13" height="26" rx="6" fill="${skin}"/>
-  <rect x="140" y="176" width="13" height="26" rx="6" fill="${skin}"/>
-  <!-- torso: the top -->
-  <path d="M62 68 h76 a8 8 0 0 1 8 8 v100 a6 6 0 0 1 -6 6 h-80 a6 6 0 0 1 -6 -6 v-100 a8 8 0 0 1 8 -8 z"
-        fill="${F(top)}" stroke="${edge}" stroke-width="1.2" stroke-dasharray="${dash(top)}"/>
-  <!-- legs: the bottom -->
-  <path d="M66 178 h68 v186 a5 5 0 0 1 -5 5 h-20 a5 5 0 0 1 -5 -5 v-96 h-8 v96 a5 5 0 0 1 -5 5 h-20 a5 5 0 0 1 -5 -5 z"
-        fill="${F(bot)}" stroke="${edge}" stroke-width="1.2" stroke-dasharray="${dash(bot)}"/>
-  ${sockH ? `<!-- socks, at their real length -->
-  <rect x="70" y="${sockTop}" width="24" height="${sockH}" rx="3" fill="${F(sock)}" stroke="${edge}" stroke-width="1"/>
-  <rect x="106" y="${sockTop}" width="24" height="${sockH}" rx="3" fill="${F(sock)}" stroke="${edge}" stroke-width="1"/>` : ''}
-  ${sockH < 20 ? `<rect x="72" y="370" width="20" height="24" fill="${skin}"/><rect x="108" y="370" width="20" height="24" fill="${skin}"/>` : ''}
-  <!-- shoes -->
-  <path d="M68 392 h28 v20 a6 6 0 0 1 -6 6 h-22 a6 6 0 0 1 -6 -6 v-14 a6 6 0 0 1 6 -6 z"
-        fill="${F(shoe)}" stroke="${edge}" stroke-width="1.2" stroke-dasharray="${dash(shoe)}"/>
-  <path d="M104 392 h28 a6 6 0 0 1 6 6 v14 a6 6 0 0 1 -6 6 h-22 a6 6 0 0 1 -6 -6 z"
-        fill="${F(shoe)}" stroke="${edge}" stroke-width="1.2" stroke-dasharray="${dash(shoe)}"/>
-  ${layer ? (isZip
-    ? `<!-- zip-up worn open, so the top still reads through the middle -->
-       <path d="M52 70 h34 v122 h-34 a6 6 0 0 1 -6 -6 v-110 a6 6 0 0 1 6 -6 z" fill="${F(layer)}" stroke="${edge}" stroke-width="1.2"/>
-       <path d="M114 70 h34 a6 6 0 0 1 6 6 v110 a6 6 0 0 1 -6 6 h-34 z" fill="${F(layer)}" stroke="${edge}" stroke-width="1.2"/>`
-    : `<!-- hoodie pulled over -->
-       <path d="M52 70 h96 a6 6 0 0 1 6 6 v110 a6 6 0 0 1 -6 6 h-96 a6 6 0 0 1 -6 -6 v-110 a6 6 0 0 1 6 -6 z" fill="${F(layer)}" stroke="${edge}" stroke-width="1.2"/>
-       <path d="M78 70 q22 22 44 0" fill="none" stroke="${edge}" stroke-width="1.4"/>
-       <path d="M74 60 q26 -16 52 0 q-26 26 -52 0 z" fill="${F(layer)}" stroke="${edge}" stroke-width="1.2"/>`) : ''}
-</svg>`;
-}
 const todayKey = () => new Date().toLocaleDateString('en-CA');
 const tempBucket = f => f < 60 ? 1 : f < 72 ? 2 : f < 85 ? 3 : 4;
 
@@ -1596,7 +1541,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.3';
+const BUILD = 'v2.4';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1908,20 +1853,17 @@ function renderStyle(res, worn){
   $('#buildOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
-/* ---- how to wear it: the figure, plus per-piece direction ---- */
+/* ---- how to wear it: a short written brief ---- */
 async function howToWear(set){
   const out = $('#howOut');
   const occ = OCC[S.occasion];
-  const fig = `<div class="lay" style="padding:20px 18px">${figureSVG(set)}
-    <div class="why">Silhouette read \u2014 your actual colors, and how much sock shows.</div></div>`;
 
   if (!S.apiKey){
-    out.innerHTML = fig + `<p class="mini" style="margin:12px 2px 0">Add an API key in the Me tab for wearing instructions on top of this.</p>`;
+    out.innerHTML = `<div class="note">Add an API key in the Me tab and this will tell you how to actually wear the fit.</div>`;
     out.scrollIntoView({ behavior:'smooth', block:'nearest' });
     return;
   }
 
-  out.innerHTML = fig;
   busy(true, 'Working out how to wear it\u2026');
   try {
     const prompt = `You are a sharp personal stylist. Your client owns these pieces and is wearing them together for: ${occ.name}. ${occ.line}
@@ -1930,42 +1872,29 @@ Weather: ${TEMP_NAME[S.temp]}.
 THE OUTFIT:
 ${set.map(describe).join('\\n')}
 
-They know what to wear. They want to know HOW to wear it \u2014 the physical execution.
+They already know WHAT to wear. They want to know HOW to wear it \u2014 the physical execution.
 
 Reply with ONLY this JSON, no prose or fences:
 {
-  "wear": [{"id": "the item id", "how": "how to wear this specific piece, under 14 words"}],
-  "silhouette": "one sentence on the overall shape and proportion this creates",
-  "watch": "the one thing most likely to make this look sloppy, one sentence"
+  "blurb": "2-4 sentences on how to wear this fit",
+  "watch": "the one thing most likely to make it look sloppy, one sentence"
 }
 
-Cover every piece. Be physical and specific: tuck or untuck, full or half, cuff height,
-sleeve push, how many buttons, zip position, how much sock shows, where the hem should break.
-No flattery, no restating what the item is.`;
+In the blurb be physical and specific: tuck or untuck, full or half, cuff height, sleeve push,
+how many buttons, zip position, how much sock shows, where the hem should break, what carries
+the outfit and what should stay quiet. Write it like you're talking to them, not writing a list.
+No flattery, no restating what the items are.`;
     let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 900); }
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 700); }
     catch(e){
-      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 900);
+      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 700);
       else throw e;
     }
     const res = parseJSON(text);
-    const rows = (res.wear || []).map(w => {
-      const it = set.find(i => i.id === w.id);
-      if (!it || !w.how) return '';
-      return `<div class="rrow">
-        <img src="${it.img}" alt="">
-        <div class="rmid">
-          <div style="font-size:14px"><b>${esc(it.name)}</b></div>
-          <div class="mini">${esc(w.how)}</div>
-        </div>
-      </div>`;
-    }).join('');
-
-    out.innerHTML = fig +
-      (res.silhouette ? `<div class="note" style="margin-top:14px">${esc(res.silhouette)}</div>` : '') +
-      (rows ? `<div style="margin-top:14px"><span class="label">Piece by piece</span>${rows}</div>` : '') +
-      (res.watch ? `<div style="margin-top:14px"><span class="label">Watch out for</span>
-         <p class="mini" style="margin:0">${esc(res.watch)}</p></div>` : '');
+    if (!res.blurb) throw new Error('empty');
+    out.innerHTML = `<span class="label">How to wear it</span>
+      <div class="note">${esc(res.blurb)}</div>` +
+      (res.watch ? `<p class="mini" style="margin:10px 2px 0"><b>Watch out:</b> ${esc(res.watch)}</p>` : '');
   } catch(err){
     const m = String(err.message || '');
     toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
