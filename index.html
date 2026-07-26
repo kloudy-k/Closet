@@ -55,7 +55,7 @@ img{display:block;}
 #app{
   min-height:100%;
   padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(54px + max(6px, calc(env(safe-area-inset-bottom) - 21px)));
+  padding-bottom:calc(60px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));
 }
 .screen{display:none; animation:fade .22s ease both;}
 .screen.on{display:block;}
@@ -88,22 +88,25 @@ h2{
   -webkit-backdrop-filter:saturate(180%) blur(18px);
   backdrop-filter:saturate(180%) blur(18px);
   border-top:1px solid var(--line);
-  padding-bottom:max(6px, calc(env(safe-area-inset-bottom) - 21px));
+  /* explicit height — don't let stacked paddings decide it */
+  height:calc(52px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));
+  padding-bottom:max(4px, calc(env(safe-area-inset-bottom) - 18px));
+  align-items:end;
 }
 #tabs button{
   position:relative;
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:8px 0 3px; color:var(--ink-3);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  height:52px; padding:0; color:var(--ink-3);
   font-family:var(--display); font-size:10.5px; font-weight:600;
   letter-spacing:.09em; text-transform:uppercase;
   transition:color .18s;
 }
-#tabs button svg{width:22px;height:22px;stroke-width:1.6;}
+#tabs button svg{width:22px;height:22px;stroke-width:1.6;flex:0 0 auto;}
 #tabs button[aria-selected="true"]{color:var(--ink);}
 #tabs button[aria-selected="true"] .dot{opacity:1;transform:translateX(-50%) scale(1);}
 /* absolutely placed so it never adds height to the bar */
 .dot{
-  position:absolute; bottom:0; left:50%;
+  position:absolute; bottom:1px; left:50%;
   width:4px; height:4px; border-radius:50%; background:var(--violet);
   opacity:0; transform:translateX(-50%) scale(.4); transition:.2s;
 }
@@ -278,7 +281,7 @@ h2{
 }
 .note b{font-weight:600;}
 .toast{
-  position:fixed;left:50%;bottom:calc(66px + max(6px, calc(env(safe-area-inset-bottom) - 21px)));transform:translateX(-50%) translateY(14px);
+  position:fixed;left:50%;bottom:calc(64px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));transform:translateX(-50%) translateY(14px);
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
   font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
@@ -1263,7 +1266,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.3 · 25 Jul 2026';
+const BUILD = 'v1.4 · 25 Jul 2026';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
