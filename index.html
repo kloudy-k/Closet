@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <style>
 :root{
+  --sat:0px; --sab:6px;
   --bg:#E8E9E4; --surface:#F6F6F3; --surface-2:#DEDFD9; --sunk:#D6D8D1;
   --ink:#16171C; --ink-2:#6E7280; --ink-3:#9DA1A9;
   --line:#D0D2CB; --line-2:#C0C3BB;
@@ -54,8 +55,8 @@ img{display:block;}
 /* ---------- shell ---------- */
 #app{
   min-height:100%;
-  padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(60px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));
+  padding-top:var(--sat, 0px);
+  padding-bottom:calc(60px + var(--sab, 6px));
 }
 .screen{display:none; animation:fade .22s ease both;}
 .screen.on{display:block;}
@@ -90,8 +91,8 @@ h2{
   border-top:1px solid var(--line);
   /* explicit height, and the inset is capped — iOS reports a much larger
      bottom inset in standalone mode than in Safari */
-  height:calc(52px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));
-  padding-bottom:clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px);
+  height:calc(52px + var(--sab, 6px));
+  padding-bottom:var(--sab, 6px);
   align-items:end;
 }
 #tabs button{
@@ -250,7 +251,7 @@ h2{
   background:var(--bg);border-top-left-radius:26px;border-top-right-radius:26px;
   border-top:1px solid var(--line);
   max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:8px 18px calc(26px + env(safe-area-inset-bottom));
+  padding:8px 18px calc(26px + var(--sab, 6px));
   transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
   display:none;
 }
@@ -282,7 +283,7 @@ h2{
 }
 .note b{font-weight:600;}
 .toast{
-  position:fixed;left:50%;bottom:calc(64px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));transform:translateX(-50%) translateY(14px);
+  position:fixed;left:50%;bottom:calc(64px + var(--sab, 6px));transform:translateX(-50%) translateY(14px);
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
   font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
@@ -1267,7 +1268,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.5';
+const BUILD = 'v1.6';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1326,29 +1327,51 @@ window.addEventListener('resize', () => { if (toneImg) drawTone(); });
 /* ============================================================
    BOOT
    ============================================================ */
-/* Reports what iOS actually hands us, so bar sizing stops being guesswork. */
-function measureChrome(){
-  let inset = 0;
+/* iOS reports env(safe-area-inset-*) as 0 on some builds even in standalone,
+   which leaves content under the status bar and the tab labels under the home
+   indicator. Measure it, and fall back to real device values when it lies. */
+const ISLAND = [852, 874, 932, 956];   // screen heights with a Dynamic Island
+
+function applyInsets(){
+  let top = 0, bottom = 0;
   try {
     const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom);pointer-events:none;';
+    probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;' +
+      'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);';
     document.body.appendChild(probe);
-    inset = probe.getBoundingClientRect().height;
+    const cs = getComputedStyle(probe);
+    top = parseFloat(cs.paddingTop) || 0;
+    bottom = parseFloat(cs.paddingBottom) || 0;
     probe.remove();
   } catch(e){}
-  const bar = $('#tabs').getBoundingClientRect().height;
+
   const standalone = navigator.standalone === true ||
     (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-  return { inset: Math.round(inset), bar: Math.round(bar), mode: standalone ? 'app' : 'safari' };
+  const h = Math.max(screen.width || 0, screen.height || 0);
+
+  if (standalone){
+    if (top < 20)    top = h >= 812 ? (ISLAND.indexOf(h) >= 0 ? 59 : 47) : 20;
+    if (bottom < 12) bottom = h >= 812 ? 20 : 0;
+  }
+  bottom = Math.min(bottom, 24);
+
+  const root = document.documentElement;
+  root.style.setProperty('--sat', top + 'px');
+  root.style.setProperty('--sab', bottom + 'px');
+  return { top, bottom, standalone };
 }
 
 (async function(){
+  const ins = applyInsets();
   await load();
   renderOccasions();
   renderCloset(); renderTone(); renderSaved(); renderToday();
-  const m = measureChrome();
-  $('#buildLine').textContent = `${BUILD} · ${m.mode} · inset ${m.inset} · bar ${m.bar}`;
+  const bar = Math.round($('#tabs').getBoundingClientRect().height);
+  $('#buildLine').textContent =
+    `${BUILD} · ${ins.standalone ? 'app' : 'safari'} · top ${Math.round(ins.top)} · bot ${Math.round(ins.bottom)} · bar ${bar}`;
 })();
+
+window.addEventListener('orientationchange', () => setTimeout(applyInsets, 250));
 </script>
 </body>
 </html>
