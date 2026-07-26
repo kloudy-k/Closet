@@ -55,7 +55,7 @@ img{display:block;}
 #app{
   min-height:100%;
   padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(72px + env(safe-area-inset-bottom));
+  padding-bottom:calc(56px + max(8px, calc(env(safe-area-inset-bottom) - 15px)));
 }
 .screen{display:none; animation:fade .22s ease both;}
 .screen.on{display:block;}
@@ -88,19 +88,25 @@ h2{
   -webkit-backdrop-filter:saturate(180%) blur(18px);
   backdrop-filter:saturate(180%) blur(18px);
   border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);
+  padding-bottom:max(8px, calc(env(safe-area-inset-bottom) - 15px));
 }
 #tabs button{
+  position:relative;
   display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:9px 0 7px; color:var(--ink-3);
+  padding:9px 0 5px; color:var(--ink-3);
   font-family:var(--display); font-size:10.5px; font-weight:600;
   letter-spacing:.09em; text-transform:uppercase;
   transition:color .18s;
 }
 #tabs button svg{width:22px;height:22px;stroke-width:1.6;}
 #tabs button[aria-selected="true"]{color:var(--ink);}
-#tabs button[aria-selected="true"] .dot{opacity:1;transform:none;}
-.dot{width:4px;height:4px;border-radius:50%;background:var(--violet);opacity:0;transform:scale(.4);transition:.2s;}
+#tabs button[aria-selected="true"] .dot{opacity:1;transform:translateX(-50%) scale(1);}
+/* absolutely placed so it never adds height to the bar */
+.dot{
+  position:absolute; bottom:0; left:50%;
+  width:4px; height:4px; border-radius:50%; background:var(--violet);
+  opacity:0; transform:translateX(-50%) scale(.4); transition:.2s;
+}
 
 /* ---------- generic bits ---------- */
 .card{
@@ -272,13 +278,17 @@ h2{
 }
 .note b{font-weight:600;}
 .toast{
-  position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(14px);
+  position:fixed;left:50%;bottom:calc(70px + max(8px, calc(env(safe-area-inset-bottom) - 15px)));transform:translateX(-50%) translateY(14px);
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
   font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
 }
 .toast.on{opacity:1;transform:translateX(-50%);}
 .hidden{display:none!important;}
+/* iOS Safari refuses to open the picker for a display:none input,
+   so park it offscreen instead of hiding it */
+.filein{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;}
+label.tile.add,label.btn{cursor:pointer;}
 .spread{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .mini{font-size:13px;color:var(--ink-2);}
 hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
@@ -357,7 +367,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
         <p class="mini" style="margin:9px 0 0">Tap a patch of skin — cheek, forehead or the back of your hand. Avoid shadow and blown-out highlights.</p>
       </div>
       <div class="row">
-        <button class="btn soft sm" id="addToneBtn" style="width:100%">Add a photo</button>
+        <label class="btn soft sm" for="toneIn" style="width:100%">Add a photo</label>
         <button class="btn ghost sm" id="clearToneBtn" style="width:100%">Clear</button>
       </div>
     </div>
@@ -453,8 +463,8 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
   </div>
 </div>
 
-<input type="file" accept="image/*" id="fileIn" class="hidden">
-<input type="file" accept="image/*" id="toneIn" class="hidden">
+<input type="file" id="fileIn" class="filein" accept="image/*,image/heic,image/heif,.heic,.heif,.HEIC">
+<input type="file" id="toneIn" class="filein" accept="image/*,image/heic,image/heif,.heic,.heif,.HEIC">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -886,9 +896,9 @@ function renderCloset(){
 
   const list = cur === 'all' ? S.items : S.items.filter(i => i.cat === cur);
   $('#closetGrid').innerHTML =
-    `<button class="tile add" id="addTile" aria-label="Add a piece">
+    `<label class="tile add" for="fileIn" aria-label="Add a piece">
        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
-     </button>` +
+     </label>` +
     list.map(i => `<button class="tile" data-id="${i.id}"><img src="${i.img}" alt="${esc(i.name)}" loading="lazy"><span class="nm">${esc(i.name)}</span></button>`).join('');
 }
 
@@ -984,13 +994,34 @@ function runBuild(){
 /* ============================================================
    PHOTOS
    ============================================================ */
-function loadImage(file){
+/* iPhone photos arrive as HEIC. Three decode paths, most capable first —
+   whatever succeeds gets re-encoded to JPEG on the way into storage. */
+function viaObjectURL(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload  = () => { URL.revokeObjectURL(url); res(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img decode failed')); };
+    im.src = url;
+  });
+}
+function viaFileReader(file){
   return new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onload = () => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = fr.result; };
     fr.onerror = rej;
     fr.readAsDataURL(file);
   });
+}
+async function loadImage(file){
+  if (self.createImageBitmap){
+    try { return await createImageBitmap(file); } catch(e){ /* fall through */ }
+  }
+  try { return await viaObjectURL(file); } catch(e){ /* fall through */ }
+  return await viaFileReader(file);
+}
+function badPhoto(){
+  toast("Couldn't read that photo — try Settings › Camera › Formats › Most Compatible");
 }
 function shrink(img, max, q){
   const scale = Math.min(1, max / Math.max(img.width, img.height));
@@ -1137,7 +1168,6 @@ $('#catFilter').addEventListener('click', e => {
 });
 
 $('#closetGrid').addEventListener('click', e => {
-  if (e.target.closest('#addTile')) return $('#fileIn').click();
   const t = e.target.closest('.tile[data-id]'); if (!t) return;
   openItemSheet(S.items.find(i => i.id === t.dataset.id));
 });
@@ -1149,11 +1179,12 @@ $('#fileIn').addEventListener('change', async e => {
     const img = await loadImage(f);
     pendingRGB = dominantColor(img);
     pendingImg = shrink(img, 900, 0.78);
+    if (img.close) img.close();
     openItemSheet(null);
     $('#itemPreviewWrap').classList.remove('hidden');
     $('#itemPreview').src = pendingImg;
     $('#itemSwatch').style.background = hex(pendingRGB);
-  } catch(err){ toast("Couldn't read that photo"); }
+  } catch(err){ badPhoto(); }
 });
 
 $('#itemCat').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemCat', b.dataset.v); });
@@ -1194,7 +1225,6 @@ $('#pickGrid').addEventListener('click', e => {
 });
 $('#pickDone').onclick = () => { closeSheets(); renderBuild(); runBuild(); };
 
-$('#addToneBtn').onclick = () => $('#toneIn').click();
 $('#toneIn').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
@@ -1204,7 +1234,7 @@ $('#toneIn').addEventListener('change', async e => {
     $('#cross').classList.add('hidden');
     drawTone();
     $('#toneStageWrap').scrollIntoView({ behavior:'smooth', block:'center' });
-  } catch(err){ toast("Couldn't read that photo"); }
+  } catch(err){ badPhoto(); }
 });
 $('#toneCanvas').addEventListener('click', e => sampleAt(e.clientX, e.clientY));
 $('#swatches').addEventListener('click', e => {
