@@ -396,7 +396,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
 <section class="screen" id="s-me">
   <div class="head">
     <div class="eyebrow">Your palette</div>
-    <h1>Colour read</h1>
+    <h1>Color read</h1>
     <p class="sub">Add 2–4 photos in different light and tap your skin in each. Averaging across shots is what makes the read hold up.</p>
   </div>
   <div class="wrap stack">
@@ -489,7 +489,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
     <div id="itemPreviewWrap" class="hidden">
       <img id="itemPreview" style="width:100%;border-radius:var(--r-m);aspect-ratio:1/1;object-fit:cover;border:1px solid var(--line)">
       <div class="spread" style="margin-top:10px">
-        <span class="mini">Colour picked up</span>
+        <span class="mini">Color picked up</span>
         <span id="itemSwatch" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);display:inline-block"></span>
       </div>
     </div>
@@ -629,6 +629,7 @@ const S = {
   occasion: 'coffee',
   lastOutfit: null,
   picked: [],
+  migrated: 0,
   apiKey: '',
   geo: null,
   geoName: '',
@@ -639,8 +640,8 @@ const S = {
 const CATS = [
   {id:'top',    label:'Top'},
   {id:'bottom', label:'Bottom'},
-  {id:'onepiece',label:'One-piece'},
-  {id:'outer',  label:'Layer'},
+  {id:'hoodie', label:'Hoodie'},
+  {id:'zipup',  label:'Zip-up'},
   {id:'shoes',  label:'Shoes'},
   {id:'socks',  label:'Socks'},
   {id:'acc',    label:'Extra'}
@@ -668,9 +669,9 @@ const OCCASIONS = [
   {id:'hike',    name:'Hike',          formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1,
    line:'Hot going up, cold at the top, sun the whole time.'},
   {id:'market',  name:'Farmers market',formal:[2,3],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
-   line:'Morning grey burns off around eleven. Dress for both.'},
+   line:'Morning gray burns off around eleven. Dress for both.'},
   {id:'gallery', name:'Gallery / show',formal:[3,4],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
-   line:'Quiet colours, one loud detail.'}
+   line:'Quiet colors, one loud detail.'}
 ];
 const OCC = Object.fromEntries(OCCASIONS.map(o => [o.id, o]));
 
@@ -678,7 +679,7 @@ const TEMP_TARGET = {1:4, 2:3, 3:2, 4:1};
 const TEMP_NAME   = {1:'Cool · under 60°', 2:'Mild · 60–72°', 3:'Warm · 72–85°', 4:'Hot · 85°+'};
 
 /* ============================================================
-   COLOUR MATH
+   COLOR MATH
    ============================================================ */
 function srgbToLab(r, g, b){
   const f = c => { c /= 255; return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
@@ -714,7 +715,7 @@ function isNeutral(rgb){
   return s < 0.16 || l < 0.13 || l > 0.90;
 }
 
-/* Two colours sitting next to each other: does it work? 0–1 */
+/* Two colors sitting next to each other: does it work? 0–1 */
 function harmony(a, b){
   if (isNeutral(a) || isNeutral(b)) return 0.88;
   const A = rgbToHsl(...a), B = rgbToHsl(...b);
@@ -731,7 +732,7 @@ function harmony(a, b){
   return Math.max(0, Math.min(1, base));
 }
 
-/* Dominant colour of a garment photo — weighted to the centre so
+/* Dominant color of a garment photo — weighted to the center so
    the wall behind it doesn't win. */
 function dominantColor(img){
   const N = 64;
@@ -789,20 +790,20 @@ const PALETTES = {
   Warm: {
     hues: [[15,65],[65,110]],
     love: [['#C4703F','Rust'],['#B4924F','Ochre'],['#5E6B3C','Olive'],['#F0E3CC','Cream'],['#8C5A3C','Chestnut'],['#2E5148','Pine'],['#D9B48A','Camel']],
-    swerve: [['#1F2E7A','Icy navy'],['#C7CED6','Cold grey'],['#F7F7F7','Optic white']],
-    line: 'Golden undertone. Anything sun-baked sits right on you; true icy colours fight it.'
+    swerve: [['#1F2E7A','Icy navy'],['#C7CED6','Cold gray'],['#F7F7F7','Optic white']],
+    line: 'Golden undertone. Anything sun-baked sits right on you; true icy colors fight it.'
   },
   Cool: {
     hues: [[190,260],[260,330],[330,360],[0,15]],
     love: [['#1E3557','Navy'],['#6B1E3A','Wine'],['#4A5560','Slate'],['#F6F6F6','Clean white'],['#1F5C4A','Emerald'],['#8E9AB0','Fog'],['#5B3D6B','Jacaranda']],
     swerve: [['#C89B52','Warm gold'],['#B4A276','Beige-yellow'],['#C4703F','Rust']],
-    line: 'Pink-to-blue undertone. Cold, clear colours read crisp on you; warm yellows go muddy.'
+    line: 'Pink-to-blue undertone. Cold, clear colors read crisp on you; warm yellows go muddy.'
   },
   Neutral: {
     hues: [[0,360]],
     love: [['#3E4A55','Denim'],['#7A8471','Sage'],['#A8574D','Brick'],['#EDE7DC','Bone'],['#2F3A46','Ink'],['#B08A94','Dusty rose'],['#4E7B7F','Teal']],
     swerve: [['#F2FF4D','Neon'],['#FF7DD8','Hot pink']],
-    line: 'Balanced undertone — the easy one. Mid-saturation colours flatter you most; only fluorescents push back.'
+    line: 'Balanced undertone — the easy one. Mid-saturation colors flatter you most; only fluorescents push back.'
   }
 };
 
@@ -825,12 +826,7 @@ function paletteFit(rgb, tone){
 /* ============================================================
    OUTFIT ENGINE
    ============================================================ */
-function slotsFor(occ, hasOnepiece){
-  const base = hasOnepiece ? ['onepiece'] : ['top','bottom'];
-  const s = base.slice();
-  if (occ.shoes) s.push('shoes');
-  return s;
-}
+const LAYERS = ['hoodie','zipup'];
 function byCat(c){ return S.items.filter(i => i.cat === c); }
 function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -847,22 +843,28 @@ function scoreItem(item, occ, tone){
 }
 
 function buildOutfit(occ, tone, avoidKey){
-  const tops = byCat('top'), bottoms = byCat('bottom'), ones = byCat('onepiece');
-  const shoes = byCat('shoes'), outers = byCat('outer'), accs = byCat('acc'), socks = byCat('socks');
-  const canPair = tops.length && bottoms.length;
-  if (!canPair && !ones.length) return null;
+  const tops = byCat('top'), bottoms = byCat('bottom');
+  const shoes = byCat('shoes'), accs = byCat('acc'), socks = byCat('socks');
+  const hoodies = byCat('hoodie'), zips = byCat('zipup');
+  if (!tops.length || !bottoms.length) return null;
 
   let best = null, bestScore = -1;
   for (let trial = 0; trial < 420; trial++){
-    const useOne = ones.length && (!canPair || Math.random() < 0.3);
-    const core = useOne ? [pick(ones)] : [pick(tops), pick(bottoms)];
-    const set = core.slice();
+    const set = [pick(tops), pick(bottoms)];
     if (occ.shoes && shoes.length) set.push(pick(shoes));
     if (occ.shoes && socks.length && occ.id !== 'beach' && Math.random() < 0.8) set.push(pick(socks));
-    if (occ.outer !== 'no' && outers.length){
+    const layers = hoodies.concat(zips);
+    if (occ.outer !== 'no' && layers.length){
       const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
       const want = occ.outer === 'often' ? 0.72 : 0.34;
-      if (Math.random() < want * (target / 3)) set.push(pick(outers));
+      if (Math.random() < want * (target / 3)){
+        const first = pick(layers);
+        set.push(first);
+        // hoodie under a zip-up is fair game, but only when it's genuinely cold
+        if (S.temp === 1 && hoodies.length && zips.length && Math.random() < 0.4){
+          set.push(pick(first.cat === 'hoodie' ? zips : hoodies));
+        }
+      }
     }
     if (occ.acc !== 'no' && accs.length){
       if (Math.random() < (occ.acc === 'often' ? 0.6 : 0.3)) set.push(pick(accs));
@@ -884,7 +886,8 @@ function buildOutfit(occ, tone, avoidKey){
 
 /* Given what's already on, what's the best thing for one empty slot? */
 function suggestFor(cat, worn, occ, tone){
-  const pool = byCat(cat).filter(i => !worn.some(w => w.id === i.id));
+  const cats = Array.isArray(cat) ? cat : [cat];
+  const pool = S.items.filter(i => cats.indexOf(i.cat) >= 0 && !worn.some(w => w.id === i.id));
   if (!pool.length) return null;
   let best = null, bs = -1;
   for (const it of pool){
@@ -904,11 +907,11 @@ function explain(set, occ, tone){
   const bits = [];
   const loud = set.filter(i => !isNeutral(i.rgb));
   if (loud.length === 0) bits.push('All neutrals, so nothing competes');
-  else if (loud.length === 1) bits.push(`<b>${esc(loud[0].name)}</b> is the one piece carrying colour`);
+  else if (loud.length === 1) bits.push(`<b>${esc(loud[0].name)}</b> is the one piece carrying color`);
   else {
     let d = Math.abs(rgbToHsl(...loud[0].rgb).h - rgbToHsl(...loud[1].rgb).h);
     if (d > 180) d = 360 - d;
-    bits.push(d < 52 ? 'Colours sit close together, so it reads as one thing' : 'Two colours pulling against each other on purpose');
+    bits.push(d < 52 ? 'Colors sit close together, so it reads as one thing' : 'Two colors pulling against each other on purpose');
   }
   if (tone && tone.confidence > 0.4){
     const good = set.filter(i => paletteFit(i.rgb, tone) > 0.85).length;
@@ -1008,7 +1011,7 @@ function pieceHTML(item, slot, i){
 }
 
 function layHTML(set){
-  const order = ['onepiece','top','bottom','outer','shoes','socks','acc'];
+  const order = ['top','bottom','hoodie','zipup','shoes','socks','acc'];
   const sorted = set.slice().sort((a,b) => order.indexOf(a.cat) - order.indexOf(b.cat));
   return `<div class="lay-grid">${sorted.map((it, i) => pieceHTML(it, CATNAME[it.cat], i)).join('')}</div>`;
 }
@@ -1034,7 +1037,7 @@ function renderToday(){
   if (!set){
     out.innerHTML = `<div class="empty">
       <h3>Not enough to work with</h3>
-      <p>I need at least one top and one bottom, or a one-piece.</p>
+      <p>I need at least one top and one bottom to work with.</p>
       <button class="btn" onclick="go('closet')">Add pieces</button>
     </div>`;
     return;
@@ -1113,7 +1116,7 @@ function renderTone(){
       </div>
       <p style="margin:0;font-size:14.5px;color:var(--ink-2)">${esc(P.line)}</p>
       <div>
-        <span class="label">Colours that work</span>
+        <span class="label">Colors that work</span>
         <div class="palette">${P.love.map(([c, n]) => `<div class="pal"><div class="c" style="background:${c}"></div><div class="t">${esc(n)}</div></div>`).join('')}</div>
       </div>
       <div>
@@ -1147,16 +1150,14 @@ function runBuild(){
   const tone = readTone(S.samples);
   const have = new Set(worn.map(i => i.cat));
   const wants = [];
-  if (!have.has('onepiece')){
-    if (!have.has('top')) wants.push('top');
-    if (!have.has('bottom')) wants.push('bottom');
-  }
-  if (!have.has('shoes')) wants.push('shoes');
-  if (!have.has('socks') && occ.shoes && occ.id !== 'beach') wants.push('socks');
-  if (!have.has('outer') && S.temp <= 2) wants.push('outer');
-  if (!have.has('acc')) wants.push('acc');
+  if (!have.has('top')) wants.push(['top']);
+  if (!have.has('bottom')) wants.push(['bottom']);
+  if (!have.has('shoes')) wants.push(['shoes']);
+  if (!have.has('socks') && occ.shoes && occ.id !== 'beach') wants.push(['socks']);
+  if (!have.has('hoodie') && !have.has('zipup') && S.temp <= 2) wants.push(LAYERS);
+  if (!have.has('acc')) wants.push(['acc']);
 
-  const found = wants.map(c => ({ cat: c, item: suggestFor(c, worn, occ, tone) })).filter(x => x.item);
+  const found = wants.map(c => ({ item: suggestFor(c, worn, occ, tone) })).filter(x => x.item);
   if (!found.length){
     out.innerHTML = `<div class="note">That's a complete fit already — nothing in your closet improves it for a ${esc(occ.name.toLowerCase())}.</div>`;
     return;
@@ -1164,7 +1165,7 @@ function runBuild(){
   out.innerHTML = `
     <span class="label">Add these</span>
     <div class="lay">
-      <div class="lay-grid">${found.map((f, i) => pieceHTML(f.item, CATNAME[f.cat], i)).join('')}</div>
+      <div class="lay-grid">${found.map((f, i) => pieceHTML(f.item, CATNAME[f.item.cat], i)).join('')}</div>
       <div class="why">Matched against what you've already got on, for a <b>${esc(occ.name.toLowerCase())}</b>.</div>
     </div>
     <p class="mini" style="margin:12px 2px 0">Change the occasion on the Today tab to get a different read.</p>`;
@@ -1255,8 +1256,6 @@ function blockedCats(){
   const chosen = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean).map(i => i.cat);
   const b = new Set();
   chosen.forEach(c => { if (!MULTI.has(c)) b.add(c); });
-  if (chosen.indexOf('onepiece') >= 0){ b.add('top'); b.add('bottom'); }
-  if (chosen.indexOf('top') >= 0 || chosen.indexOf('bottom') >= 0) b.add('onepiece');
   return b;
 }
 
@@ -1340,6 +1339,19 @@ function save(){
       occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay });
   }, 150);
 }
+/* Older builds had 'outer' and 'onepiece'. Move those pieces somewhere real. */
+function migrateCats(){
+  let changed = 0;
+  S.items.forEach(i => {
+    if (i.cat === 'outer'){
+      i.cat = /hood|sweat|crew|pullover|fleece/i.test(i.name || '') ? 'hoodie' : 'zipup';
+      changed++;
+    } else if (i.cat === 'onepiece'){ i.cat = 'top'; changed++; }
+  });
+  if (changed) save();
+  return changed;
+}
+
 async function load(){
   S.apiKey = (await DB.get('apikey')) || '';
   const v = await DB.get('state');
@@ -1347,6 +1359,7 @@ async function load(){
     S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
     S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
     S.geo = v.geo || null; S.geoName = v.geoName || ''; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
+    S.migrated = migrateCats();
   }
   $('#storeNote').textContent = DB.fallback()
     ? 'Heads up: this browser is blocking storage, so nothing will survive a reload. Saving the file to your Home Screen fixes it.'
@@ -1515,7 +1528,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.0';
+const BUILD = 'v2.2';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1592,7 +1605,10 @@ people, furniture and background.
 Reply with ONLY a JSON array. No prose, no markdown fences. Each element:
 {
   "name": short lowercase label, max 4 words, e.g. "faded black tee",
-  "cat": one of "top", "bottom", "onepiece", "outer", "shoes", "socks", "acc",
+  "cat": one of "top", "bottom", "hoodie", "zipup", "shoes", "socks", "acc",
+        - "hoodie" = pullover hoodies, sweatshirts, crewnecks, anything without a full zip
+        - "zipup"  = jackets, anything with a full-length zip
+        - a dress, jumpsuit or romper should be tagged "top"
   "len": socks only, one of "noshow", "ankle", "crew", "knee",
   "formal": 1-5 where 1=loungewear, 2=casual, 3=smart casual, 4=sharp, 5=formal,
   "warm": 1-5 where 1=tank/shorts, 3=mid weight, 5=heavy coat,
@@ -1670,7 +1686,7 @@ function openReview(img, tags){
     });
   }
   if (img.close) img.close();
-  if (!reviewItems.length) return toast('Nothing recognisable in that photo');
+  if (!reviewItems.length) return toast('Nothing recognizable in that photo');
   renderReview();
   openSheet('#sheet-review');
 }
@@ -1742,10 +1758,11 @@ Reply with ONLY this JSON, no prose or fences:
 }
 
 Rules:
-- A complete outfit needs a top and bottom (or a one-piece), plus shoes unless they're at home.
+- A complete outfit needs a top, a bottom and shoes unless they're at home.
+- Hoodie and Zip-up are both layers. Layering one under the other is only worth it when it's cold.
 - Three additions maximum. Suggest a swap only when it clearly lifts the outfit.
-- Be specific about proportion, texture, colour relationships and where the eye lands. No filler, no flattery.
-- Socks count. Call out length and colour when they help or hurt, especially with cropped or wide legs.
+- Be specific about proportion, texture, color relationships and where the eye lands. No filler, no flattery.
+- Socks count. Call out length and color when they help or hurt, especially with cropped or wide legs.
 - At most 3 tips, each under 12 words, physical and doable: tuck, cuff, sleeve roll, layering order, what to leave undone.`;
 }
 
@@ -1899,6 +1916,7 @@ function applyInsets(){
   applyWeather();
   renderToday();
   $('#buildLine').textContent = BUILD;
+  if (S.migrated) toast(S.migrated + ' layer' + (S.migrated === 1 ? '' : 's') + ' moved to Hoodie / Zip-up — check them');
   refreshWeather(false);
 })();
 
