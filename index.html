@@ -539,6 +539,24 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
   </div>
 </div>
 
+<div class="sheet" id="sheet-loc">
+  <div class="grab"></div>
+  <div class="spread" style="margin-bottom:6px">
+    <h2 style="min-width:0">Set your location</h2>
+    <button class="xbtn" id="closeLoc" aria-label="Close">✕</button>
+  </div>
+  <p class="mini" id="locNote" style="margin:0 0 14px"></p>
+  <div class="stack">
+    <button class="btn soft" id="useGps">Use my current location</button>
+    <div>
+      <span class="label">Or search for a city</span>
+      <input class="field" id="cityIn" placeholder="Cypress, California" autocomplete="off" enterkeyhint="search">
+      <button class="btn ghost sm" id="citySearch" style="width:100%;margin-top:10px">Search</button>
+    </div>
+    <div id="cityResults"></div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet-review">
   <div class="grab"></div>
   <div class="spread" style="margin-bottom:6px">
@@ -613,6 +631,7 @@ const S = {
   picked: [],
   apiKey: '',
   geo: null,
+  geoName: '',
   wx: null,
   tempDay: ''
 };
@@ -829,7 +848,7 @@ function scoreItem(item, occ, tone){
 
 function buildOutfit(occ, tone, avoidKey){
   const tops = byCat('top'), bottoms = byCat('bottom'), ones = byCat('onepiece');
-  const shoes = byCat('shoes'), outers = byCat('outer'), accs = byCat('acc');
+  const shoes = byCat('shoes'), outers = byCat('outer'), accs = byCat('acc'), socks = byCat('socks');
   const canPair = tops.length && bottoms.length;
   if (!canPair && !ones.length) return null;
 
@@ -839,6 +858,7 @@ function buildOutfit(occ, tone, avoidKey){
     const core = useOne ? [pick(ones)] : [pick(tops), pick(bottoms)];
     const set = core.slice();
     if (occ.shoes && shoes.length) set.push(pick(shoes));
+    if (occ.shoes && socks.length && occ.id !== 'beach' && Math.random() < 0.8) set.push(pick(socks));
     if (occ.outer !== 'no' && outers.length){
       const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
       const want = occ.outer === 'often' ? 0.72 : 0.34;
@@ -901,6 +921,64 @@ function explain(set, occ, tone){
 }
 
 /* ============================================================
+   WEATHER — Open-Meteo, no key needed, CORS-friendly
+   ============================================================ */
+const todayKey = () => new Date().toLocaleDateString('en-CA');
+const tempBucket = f => f < 60 ? 1 : f < 72 ? 2 : f < 85 ? 3 : 4;
+
+function getCoords(ask){
+  if (S.geo && !ask) return Promise.resolve(S.geo);
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error('nogeo'));
+    navigator.geolocation.getCurrentPosition(
+      p => { S.geo = { la:+p.coords.latitude.toFixed(3), lo:+p.coords.longitude.toFixed(3) }; save(); res(S.geo); },
+      rej, { timeout:12000, maximumAge:21600000 });
+  });
+}
+
+async function fetchWeather(ask){
+  const g = await getCoords(ask);
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + g.la + '&longitude=' + g.lo +
+    '&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max' +
+    '&temperature_unit=fahrenheit&timezone=auto&forecast_days=1';
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('wx');
+  const D = (await r.json()).daily || {};
+  const hi = Math.round(D.temperature_2m_max[0]);
+  const lo = Math.round(D.temperature_2m_min[0]);
+  const feels = Math.round((D.apparent_temperature_max || [hi])[0]);
+  S.wx = { day: todayKey(), hi: hi, lo: lo, feels: feels };
+  save();
+  return S.wx;
+}
+
+function applyWeather(){
+  $('#wxBtn').textContent = S.geo ? 'Change' : 'Set location';
+  const w = S.wx;
+  if (!w){ $('#wxLine').textContent = ''; return; }
+  const stale = w.day !== todayKey();
+  let txt = w.hi + '\u00B0 / ' + w.lo + '\u00B0' + (stale ? ' (yesterday)' : ' today');
+  if (!stale && w.hi - w.lo >= 22) txt += ' \u00B7 big swing, take a layer';
+  $('#wxLine').textContent = txt;
+  // never override a choice the person made themselves today
+  if (!stale && S.tempDay !== todayKey()) S.temp = tempBucket(w.feels);
+}
+
+async function refreshWeather(ask){
+  const fresh = S.wx && S.wx.day === todayKey();
+  if (!ask && (!S.geo || fresh)){ applyWeather(); return; }
+  if (ask) busy(true, 'Checking the forecast\u2026');
+  try {
+    await fetchWeather(ask);
+    applyWeather();
+    renderToday();
+  } catch(err){
+    applyWeather();
+    if (ask) toast("Couldn't get the forecast");
+  } finally { busy(false); }
+}
+
+/* ============================================================
    RENDER
    ============================================================ */
 const $  = s => document.querySelector(s);
@@ -930,7 +1008,7 @@ function pieceHTML(item, slot, i){
 }
 
 function layHTML(set){
-  const order = ['onepiece','top','bottom','outer','shoes','acc'];
+  const order = ['onepiece','top','bottom','outer','shoes','socks','acc'];
   const sorted = set.slice().sort((a,b) => order.indexOf(a.cat) - order.indexOf(b.cat));
   return `<div class="lay-grid">${sorted.map((it, i) => pieceHTML(it, CATNAME[it.cat], i)).join('')}</div>`;
 }
@@ -1074,6 +1152,7 @@ function runBuild(){
     if (!have.has('bottom')) wants.push('bottom');
   }
   if (!have.has('shoes')) wants.push('shoes');
+  if (!have.has('socks') && occ.shoes && occ.id !== 'beach') wants.push('socks');
   if (!have.has('outer') && S.temp <= 2) wants.push('outer');
   if (!have.has('acc')) wants.push('acc');
 
@@ -1140,6 +1219,8 @@ function openSheet(id){ $('#scrim').classList.add('on'); $(id).classList.add('on
 function closeSheets(){ $('#scrim').classList.remove('on'); $$('.sheet').forEach(s => s.classList.remove('on')); document.body.style.overflow = ''; }
 
 function fillSeg(sel, v){ $$(sel + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
+function segStr(sel, dflt){ const b = $(sel + ' button[aria-pressed="true"]'); return b ? b.dataset.v : dflt; }
+function syncLen(){ $('#itemLenWrap').classList.toggle('hidden', segStr('#itemCat', 'top') !== 'socks'); }
 function segVal(sel){ const b = $(sel + ' button[aria-pressed="true"]'); return b ? +b.dataset.v : 3; }
 
 function openItemSheet(item){
@@ -1154,12 +1235,15 @@ function openItemSheet(item){
     $('#itemSwatch').style.background = hex(item.rgb);
     $('#itemName').value = item.name;
     fillSeg('#itemCat', item.cat); fillSeg('#itemFormal', item.formal); fillSeg('#itemWarm', item.warm);
+    fillSeg('#itemLen', item.len || 'crew');
   } else {
     pendingImg = null; pendingRGB = null;
     $('#itemPreviewWrap').classList.add('hidden');
     $('#itemName').value = '';
     fillSeg('#itemCat', 'top'); fillSeg('#itemFormal', 2); fillSeg('#itemWarm', 3);
+    fillSeg('#itemLen', 'crew');
   }
+  syncLen();
   openSheet('#sheet-item');
 }
 
@@ -1253,7 +1337,7 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp,
-      occasion: S.occasion, geo: S.geo, wx: S.wx, tempDay: S.tempDay });
+      occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay });
   }, 150);
 }
 async function load(){
@@ -1262,7 +1346,7 @@ async function load(){
   if (v){
     S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
     S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
-    S.geo = v.geo || null; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
+    S.geo = v.geo || null; S.geoName = v.geoName || ''; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
   }
   $('#storeNote').textContent = DB.fallback()
     ? 'Heads up: this browser is blocking storage, so nothing will survive a reload. Saving the file to your Home Screen fixes it.'
@@ -1332,7 +1416,8 @@ function finishSingle(img, tag){
   $('#itemSwatch').style.background = hex(pendingRGB);
   if (tag){
     if (tag.name) $('#itemName').value = String(tag.name).slice(0, 40);
-    if (CATNAME[tag.cat]) fillSeg('#itemCat', tag.cat);
+    if (CATNAME[tag.cat]){ fillSeg('#itemCat', tag.cat); syncLen(); }
+    if (tag.len && LENNAME[tag.len]) fillSeg('#itemLen', tag.len);
     fillSeg('#itemFormal', clamp15(tag.formal));
     fillSeg('#itemWarm', clamp15(tag.warm));
   }
@@ -1362,7 +1447,8 @@ $('#fileIn').addEventListener('change', async e => {
   else finishSingle(img, tags && tags[0]);
 });
 
-$('#itemCat').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemCat', b.dataset.v); });
+$('#itemCat').addEventListener('click', e => { const b = e.target.closest('button'); if (b){ fillSeg('#itemCat', b.dataset.v); syncLen(); } });
+$('#itemLen').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemLen', b.dataset.v); });
 $('#itemFormal').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemFormal', b.dataset.v); });
 $('#itemWarm').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemWarm', b.dataset.v); });
 
@@ -1376,6 +1462,7 @@ $('#saveItem').onclick = () => {
     formal: segVal('#itemFormal'),
     warm: segVal('#itemWarm'),
     rgb: pendingRGB || [128,128,128],
+    len: (catBtn && catBtn.dataset.v === 'socks') ? segStr('#itemLen', 'crew') : null,
     img: pendingImg,
     lastWorn: editing ? editing.lastWorn : 0
   };
@@ -1428,7 +1515,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.9';
+const BUILD = 'v2.0';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1505,7 +1592,8 @@ people, furniture and background.
 Reply with ONLY a JSON array. No prose, no markdown fences. Each element:
 {
   "name": short lowercase label, max 4 words, e.g. "faded black tee",
-  "cat": one of "top", "bottom", "onepiece", "outer", "shoes", "acc",
+  "cat": one of "top", "bottom", "onepiece", "outer", "shoes", "socks", "acc",
+  "len": socks only, one of "noshow", "ankle", "crew", "knee",
   "formal": 1-5 where 1=loungewear, 2=casual, 3=smart casual, 4=sharp, 5=formal,
   "warm": 1-5 where 1=tank/shorts, 3=mid weight, 5=heavy coat,
   "box": [x0, y0, x1, y1] bounding box, each value 0-1 relative to image size
@@ -1577,6 +1665,7 @@ function openReview(img, tags){
       name: String(t.name || 'piece').slice(0, 40),
       cat: CATNAME[t.cat] ? t.cat : 'top',
       formal: clamp15(t.formal), warm: clamp15(t.warm),
+      len: LENNAME[t.len] ? t.len : null,
       rgb: dominantColor(c), img: c.toDataURL('image/jpeg', 0.78), on: true
     });
   }
@@ -1604,7 +1693,8 @@ $('#addAll').onclick = () => {
   if (!keep.length) return;
   keep.forEach(r => S.items.push({
     id: uid(), name: (r.name || '').trim() || CATNAME[r.cat],
-    cat: r.cat, formal: r.formal, warm: r.warm, rgb: r.rgb, img: r.img, lastWorn: 0
+    cat: r.cat, formal: r.formal, warm: r.warm, len: r.cat === 'socks' ? (r.len || 'crew') : null,
+    rgb: r.rgb, img: r.img, lastWorn: 0
   }));
   reviewItems = [];
   save(); closeSheets(); renderCloset();
@@ -1620,7 +1710,8 @@ function describe(i){
   const tone = isNeutral(i.rgb)
     ? (l > 0.75 ? 'light neutral' : l < 0.2 ? 'near black' : 'mid neutral')
     : `${Math.round(h)}° hue, ${Math.round(sat*100)}% sat, ${Math.round(l*100)}% light`;
-  return `${i.id} | ${i.name} | ${CATNAME[i.cat]} | formality ${i.formal}/5 | warmth ${i.warm}/5 | ${hex(i.rgb)} (${tone})`;
+  const len = i.cat === 'socks' && i.len ? ` | ${LENNAME[i.len] || i.len}` : '';
+  return `${i.id} | ${i.name} | ${CATNAME[i.cat]}${len} | formality ${i.formal}/5 | warmth ${i.warm}/5 | ${hex(i.rgb)} (${tone})`;
 }
 
 function stylistPrompt(worn, pool, occ, tone){
@@ -1654,6 +1745,7 @@ Rules:
 - A complete outfit needs a top and bottom (or a one-piece), plus shoes unless they're at home.
 - Three additions maximum. Suggest a swap only when it clearly lifts the outfit.
 - Be specific about proportion, texture, colour relationships and where the eye lands. No filler, no flattery.
+- Socks count. Call out length and colour when they help or hurt, especially with cropped or wide legs.
 - At most 3 tips, each under 12 words, physical and doable: tuck, cuff, sleeve roll, layering order, what to leave undone.`;
 }
 
@@ -1810,7 +1902,81 @@ function applyInsets(){
   refreshWeather(false);
 })();
 
-$('#wxBtn').onclick = () => refreshWeather(true);
+/* ---- location: GPS if iOS allows it, city search when it doesn't ---- */
+let cityHits = [];
+
+function openLoc(){
+  $('#locNote').textContent = S.geo
+    ? 'Currently using ' + (S.geoName || 'a saved location') + '. Only used to look up the forecast.'
+    : "Only used to look up today's forecast. Nothing leaves this phone but the coordinates.";
+  $('#cityResults').innerHTML = '';
+  $('#cityIn').value = '';
+  openSheet('#sheet-loc');
+}
+$('#wxBtn').onclick = openLoc;
+$('#closeLoc').onclick = closeSheets;
+
+async function useLocation(geo, label){
+  S.geo = geo; S.geoName = label; save();
+  busy(true, 'Checking the forecast…');
+  try {
+    await fetchWeather(false);
+    applyWeather(); renderToday();
+    closeSheets(); toast('Forecast set for ' + label);
+  } catch(e){ toast("Couldn't reach the weather service"); }
+  finally { busy(false); }
+}
+
+$('#useGps').onclick = () => {
+  if (!navigator.geolocation) return toast('No location access in this browser');
+  busy(true, 'Finding you…');
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      busy(false);
+      useLocation({ la:+p.coords.latitude.toFixed(3), lo:+p.coords.longitude.toFixed(3) }, 'your location');
+    },
+    err => {
+      busy(false);
+      const c = err && err.code;
+      toast(c === 1 ? 'Permission denied — search a city below'
+          : c === 2 ? 'Position unavailable — search a city below'
+          : c === 3 ? 'Timed out — search a city below'
+          : 'Location unavailable — search a city below');
+    },
+    { timeout: 12000, maximumAge: 21600000 }
+  );
+};
+
+async function searchCity(){
+  const q = $('#cityIn').value.trim();
+  if (!q) return toast('Type a city first');
+  busy(true, 'Searching…');
+  try {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name=' + encodeURIComponent(q));
+    if (!r.ok) throw new Error('geo');
+    cityHits = (await r.json()).results || [];
+    $('#cityResults').innerHTML = cityHits.length
+      ? cityHits.map((c, i) => `<button class="btn ghost sm" data-city="${i}" style="width:100%;margin-bottom:8px">${esc([c.name, c.admin1, c.country_code].filter(Boolean).join(', '))}</button>`).join('')
+      : '<p class="mini" style="margin:0">No matches — try just the city name.</p>';
+  } catch(e){ toast('Search failed'); }
+  finally { busy(false); }
+}
+$('#citySearch').onclick = searchCity;
+$('#cityIn').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); searchCity(); } });
+$('#cityResults').addEventListener('click', e => {
+  const b = e.target.closest('[data-city]'); if (!b) return;
+  const c = cityHits[+b.dataset.city]; if (!c) return;
+  useLocation({ la:+c.latitude.toFixed(3), lo:+c.longitude.toFixed(3) },
+              [c.name, c.admin1].filter(Boolean).join(', '));
+});
+
+/* Surface script errors instead of dying silently mid-boot */
+window.addEventListener('error', e => {
+  try { toast('Error: ' + String((e && e.message) || 'unknown').slice(0, 60)); } catch(_){}
+});
+window.addEventListener('unhandledrejection', e => {
+  try { toast('Error: ' + String((e && e.reason && e.reason.message) || 'unknown').slice(0, 60)); } catch(_){}
+});
 
 window.addEventListener('orientationchange', () => setTimeout(applyInsets, 250));
 </script>
