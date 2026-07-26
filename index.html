@@ -55,7 +55,7 @@ img{display:block;}
 #app{
   min-height:100%;
   padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(56px + max(8px, calc(env(safe-area-inset-bottom) - 15px)));
+  padding-bottom:calc(54px + max(6px, calc(env(safe-area-inset-bottom) - 21px)));
 }
 .screen{display:none; animation:fade .22s ease both;}
 .screen.on{display:block;}
@@ -84,16 +84,16 @@ h2{
 #tabs{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
   display:grid; grid-template-columns:repeat(4,1fr);
-  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  background:color-mix(in srgb, var(--bg) 94%, transparent);
   -webkit-backdrop-filter:saturate(180%) blur(18px);
   backdrop-filter:saturate(180%) blur(18px);
   border-top:1px solid var(--line);
-  padding-bottom:max(8px, calc(env(safe-area-inset-bottom) - 15px));
+  padding-bottom:max(6px, calc(env(safe-area-inset-bottom) - 21px));
 }
 #tabs button{
   position:relative;
   display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:9px 0 5px; color:var(--ink-3);
+  padding:8px 0 3px; color:var(--ink-3);
   font-family:var(--display); font-size:10.5px; font-weight:600;
   letter-spacing:.09em; text-transform:uppercase;
   transition:color .18s;
@@ -278,7 +278,7 @@ h2{
 }
 .note b{font-weight:600;}
 .toast{
-  position:fixed;left:50%;bottom:calc(70px + max(8px, calc(env(safe-area-inset-bottom) - 15px)));transform:translateX(-50%) translateY(14px);
+  position:fixed;left:50%;bottom:calc(66px + max(6px, calc(env(safe-area-inset-bottom) - 21px)));transform:translateX(-50%) translateY(14px);
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
   font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
@@ -1263,7 +1263,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.2 · 25 Jul 2026';
+const BUILD = 'v1.3 · 25 Jul 2026';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
