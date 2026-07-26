@@ -352,6 +352,10 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
       <button data-t="3">Warm</button>
       <button data-t="4">Hot</button>
     </div>
+    <div class="spread" style="margin-top:9px">
+      <span class="mini" id="wxLine"></span>
+      <button class="mini" id="wxBtn" style="color:var(--violet);font-weight:600;flex:0 0 auto">Use my location</button>
+    </div>
   </div>
 
   <div class="wrap" style="margin-top:20px" id="todayOut"></div>
@@ -504,6 +508,13 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
         <button data-v="3" aria-pressed="true">Smart</button><button data-v="4">Sharp</button><button data-v="5">Formal</button>
       </div>
     </div>
+    <div id="itemLenWrap" class="hidden">
+      <span class="label">Sock length</span>
+      <div class="seg" id="itemLen">
+        <button data-v="noshow">No-show</button><button data-v="ankle">Ankle</button>
+        <button data-v="crew" aria-pressed="true">Crew</button><button data-v="knee">Knee</button>
+      </div>
+    </div>
     <div>
       <span class="label">Warmth</span>
       <div class="seg" id="itemWarm">
@@ -520,7 +531,8 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
 
 <div class="sheet" id="sheet-pick">
   <div class="grab"></div>
-  <h2>What are you wearing?</h2>
+  <h2 style="margin-bottom:10px">What are you wearing?</h2>
+  <div class="chips" id="pickCats" style="padding:0 0 2px"></div>
   <div class="wrap" style="padding:0">
     <div class="grid" id="pickGrid" style="margin-top:4px"></div>
     <button class="btn" id="pickDone" style="margin-top:18px">Fill the gaps</button>
@@ -599,7 +611,10 @@ const S = {
   occasion: 'coffee',
   lastOutfit: null,
   picked: [],
-  apiKey: ''
+  apiKey: '',
+  geo: null,
+  wx: null,
+  tempDay: ''
 };
 
 const CATS = [
@@ -608,8 +623,11 @@ const CATS = [
   {id:'onepiece',label:'One-piece'},
   {id:'outer',  label:'Layer'},
   {id:'shoes',  label:'Shoes'},
+  {id:'socks',  label:'Socks'},
   {id:'acc',    label:'Extra'}
 ];
+const SOCK_LEN = [['noshow','No-show'],['ankle','Ankle'],['crew','Crew'],['knee','Knee']];
+const LENNAME = Object.fromEntries(SOCK_LEN);
 const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.label]));
 
 /* Los Angeles, as a set of places you actually go */
@@ -1145,11 +1163,48 @@ function openItemSheet(item){
   openSheet('#sheet-item');
 }
 
-function openPickSheet(){
-  $('#pickGrid').innerHTML = S.items.map(i =>
-    `<button class="tile ${S.picked.includes(i.id) ? 'sel' : ''}" data-id="${i.id}">
+/* You wear one top, one pair of shoes, one pair of socks. Extras can stack. */
+const MULTI = new Set(['acc']);
+let pickCat = 'all';
+
+function blockedCats(){
+  const chosen = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean).map(i => i.cat);
+  const b = new Set();
+  chosen.forEach(c => { if (!MULTI.has(c)) b.add(c); });
+  if (chosen.indexOf('onepiece') >= 0){ b.add('top'); b.add('bottom'); }
+  if (chosen.indexOf('top') >= 0 || chosen.indexOf('bottom') >= 0) b.add('onepiece');
+  return b;
+}
+
+function renderPick(){
+  const blocked = blockedCats();
+  const counts = {};
+  S.items.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
+  if (blocked.has(pickCat)) pickCat = 'all';
+  const cats = CATS.filter(c => counts[c.id] && !blocked.has(c.id));
+  $('#pickCats').innerHTML =
+    `<button class="chip" data-c="all" aria-pressed="${pickCat === 'all'}">All</button>` +
+    cats.map(c => `<button class="chip" data-c="${c.id}" aria-pressed="${pickCat === c.id}">${esc(c.label)} <span style="opacity:.5">${counts[c.id]}</span></button>`).join('');
+
+  const list = S.items.filter(i => {
+    const on = S.picked.indexOf(i.id) >= 0;
+    if (pickCat !== 'all') return i.cat === pickCat;
+    return on || !blocked.has(i.cat);
+  });
+  const sheet = $('#sheet-pick'), top = sheet.scrollTop;
+  $('#pickGrid').innerHTML = list.map(i =>
+    `<button class="tile ${S.picked.indexOf(i.id) >= 0 ? 'sel' : ''}" data-id="${i.id}">
        <img src="${i.img}" alt=""><span class="tick">✓</span><span class="nm">${esc(i.name)}</span></button>`
-  ).join('') || '<p class="mini" style="grid-column:1/-1">Add pieces in the closet first.</p>';
+  ).join('') || '<p class="mini" style="grid-column:1/-1">Nothing left to pick in here.</p>';
+  sheet.scrollTop = top;
+}
+
+function openPickSheet(){
+  pickCat = 'all';
+  if (!S.items.length){
+    $('#pickCats').innerHTML = '';
+    $('#pickGrid').innerHTML = '<p class="mini" style="grid-column:1/-1">Add pieces in the closet first.</p>';
+  } else renderPick();
   openSheet('#sheet-pick');
 }
 
@@ -1197,7 +1252,8 @@ let saveTimer = null;
 function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp, occasion: S.occasion });
+    DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp,
+      occasion: S.occasion, geo: S.geo, wx: S.wx, tempDay: S.tempDay });
   }, 150);
 }
 async function load(){
@@ -1206,6 +1262,7 @@ async function load(){
   if (v){
     S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
     S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
+    S.geo = v.geo || null; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
   }
   $('#storeNote').textContent = DB.fallback()
     ? 'Heads up: this browser is blocking storage, so nothing will survive a reload. Saving the file to your Home Screen fixes it.'
@@ -1250,7 +1307,7 @@ $('#buildOcc').addEventListener('click', e => {
 
 $('#tempSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  S.temp = +b.dataset.t; save(); renderToday();
+  S.temp = +b.dataset.t; S.tempDay = todayKey(); save(); renderToday();
 });
 
 $('#catFilter').addEventListener('click', e => {
@@ -1334,12 +1391,16 @@ $('#deleteItem').onclick = () => {
 };
 
 $('#pickBtn').onclick = openPickSheet;
+$('#pickCats').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  pickCat = b.dataset.c; renderPick();
+});
 $('#pickGrid').addEventListener('click', e => {
   const t = e.target.closest('.tile[data-id]'); if (!t) return;
   const id = t.dataset.id;
-  if (S.picked.includes(id)) S.picked = S.picked.filter(x => x !== id);
+  if (S.picked.indexOf(id) >= 0) S.picked = S.picked.filter(x => x !== id);
   else S.picked.push(id);
-  t.classList.toggle('sel');
+  renderPick();
 });
 $('#pickDone').onclick = () => { closeSheets(); renderBuild(); runBuild(); };
 $('#gapBtn').onclick = runBuild;
@@ -1367,7 +1428,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.8';
+const BUILD = 'v1.9';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1739,14 +1800,17 @@ function applyInsets(){
 }
 
 (async function(){
-  const ins = applyInsets();
+  applyInsets();
   await load();
   renderOccasions();
-  renderCloset(); renderTone(); renderSaved(); renderToday(); renderKeyNote();
-  const bar = Math.round($('#tabs').getBoundingClientRect().height);
-  $('#buildLine').textContent =
-    `${BUILD} · ${ins.standalone ? 'app' : 'safari'} · top ${Math.round(ins.top)} · bot ${Math.round(ins.bottom)} · bar ${bar}`;
+  renderCloset(); renderTone(); renderSaved(); renderKeyNote();
+  applyWeather();
+  renderToday();
+  $('#buildLine').textContent = BUILD;
+  refreshWeather(false);
 })();
+
+$('#wxBtn').onclick = () => refreshWeather(true);
 
 window.addEventListener('orientationchange', () => setTimeout(applyInsets, 250));
 </script>
