@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Marine Layer">
+<meta name="theme-color" content="#E8E9E4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F14" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" href="data:image/png;base64,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">
+<title>Marine Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8E9E4; --surface:#F6F6F3; --surface-2:#DEDFD9; --sunk:#D6D8D1;
+  --ink:#16171C; --ink-2:#6E7280; --ink-3:#9DA1A9;
+  --line:#D0D2CB; --line-2:#C0C3BB;
+  --violet:#6A47A8; --violet-soft:#EDE6F8;
+  --teal:#1F7A82; --teal-soft:#DDEDEE;
+  --warn:#A6592B;
+  --shadow:0 1px 2px rgba(20,22,30,.06), 0 8px 24px -12px rgba(20,22,30,.18);
+  --r-s:10px; --r-m:16px; --r-l:22px;
+  --display:'Familjen Grotesk', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --body:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0E0F14; --surface:#181A22; --surface-2:#22252F; --sunk:#101219;
+    --ink:#ECEDF2; --ink-2:#8E93A3; --ink-3:#666B7A;
+    --line:#282C37; --line-2:#343947;
+    --violet:#B399E8; --violet-soft:#241E36;
+    --teal:#4FBEC6; --teal-soft:#122A2C;
+    --warn:#D9915C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.8);
+  }
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--body); font-size:16px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+button,input,select,textarea{font:inherit;color:inherit;}
+button{background:none;border:none;padding:0;cursor:pointer;}
+img{display:block;}
+
+/* ---------- shell ---------- */
+#app{
+  min-height:100%;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:calc(72px + env(safe-area-inset-bottom));
+}
+.screen{display:none; animation:fade .22s ease both;}
+.screen.on{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.wrap{padding:0 18px; max-width:620px; margin:0 auto;}
+
+/* ---------- header ---------- */
+.head{padding:18px 18px 10px; max-width:620px; margin:0 auto;}
+.eyebrow{
+  font-family:var(--display); font-size:11px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+h1{
+  font-family:var(--display); font-weight:700; font-size:34px;
+  letter-spacing:-.025em; line-height:1.02; margin:4px 0 0;
+}
+h2{
+  font-family:var(--display); font-weight:600; font-size:19px;
+  letter-spacing:-.015em; margin:0;
+}
+.sub{color:var(--ink-2); font-size:14.5px; margin:6px 0 0;}
+
+/* ---------- tab bar ---------- */
+#tabs{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);
+  backdrop-filter:saturate(180%) blur(18px);
+  border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#tabs button{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 0 7px; color:var(--ink-3);
+  font-family:var(--display); font-size:10.5px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase;
+  transition:color .18s;
+}
+#tabs button svg{width:22px;height:22px;stroke-width:1.6;}
+#tabs button[aria-selected="true"]{color:var(--ink);}
+#tabs button[aria-selected="true"] .dot{opacity:1;transform:none;}
+.dot{width:4px;height:4px;border-radius:50%;background:var(--violet);opacity:0;transform:scale(.4);transition:.2s;}
+
+/* ---------- generic bits ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-l); padding:16px;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--ink); color:var(--bg);
+  font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.01em;
+  padding:14px 20px; border-radius:999px; width:100%;
+  transition:transform .12s, opacity .12s;
+}
+.btn:active{transform:scale(.975);}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-2);}
+.btn.soft{background:var(--surface-2);color:var(--ink);}
+.btn:disabled{opacity:.35;}
+.btn.sm{padding:10px 16px;font-size:14px;width:auto;}
+.row{display:flex;gap:10px;}
+.row>*{flex:1;}
+
+.label{
+  font-family:var(--display); font-size:11px; font-weight:600;
+  letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3);
+  display:block; margin:0 0 8px;
+}
+.field{
+  width:100%; background:var(--sunk); border:1px solid var(--line);
+  border-radius:var(--r-s); padding:12px 13px; font-size:16px;
+}
+.field:focus{outline:2px solid var(--violet);outline-offset:1px;}
+
+.seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;}
+.seg button{
+  flex:1; padding:9px 4px; border-radius:999px; font-size:13.5px;
+  font-family:var(--display); font-weight:600; color:var(--ink-2);
+  transition:.16s; min-width:0;
+}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto; padding:9px 15px; border-radius:999px;
+  border:1px solid var(--line-2); background:var(--surface);
+  font-family:var(--display); font-weight:500; font-size:14.5px; white-space:nowrap;
+  transition:.16s;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+.empty{
+  text-align:center; padding:48px 22px; color:var(--ink-2);
+}
+.empty h3{font-family:var(--display);font-size:20px;color:var(--ink);margin:0 0 6px;letter-spacing:-.01em;}
+.empty p{margin:0 0 18px;font-size:14.5px;}
+
+/* ---------- the flat lay (signature) ---------- */
+.lay{
+  position:relative;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0/100% 34px,
+    var(--surface);
+  border:1px solid var(--line); border-radius:var(--r-l);
+  padding:18px; overflow:hidden;
+}
+.lay::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(120% 70% at 50% -10%, color-mix(in srgb,var(--violet) 13%, transparent), transparent 60%);
+}
+.lay-grid{
+  position:relative; z-index:1;
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+.piece{
+  position:relative; border-radius:var(--r-m); overflow:hidden;
+  background:var(--surface-2); border:1px solid var(--line-2);
+  aspect-ratio:1/1; min-width:0;
+  animation:pop .34s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.piece.wide{grid-column:1 / -1; aspect-ratio:16/11;}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.piece img{width:100%;height:100%;object-fit:cover;}
+.piece .slot{
+  position:absolute; top:8px; left:8px; z-index:2;
+  font-family:var(--display); font-size:9.5px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  color:var(--ink); padding:4px 8px; border-radius:999px;
+}
+.piece .nm{
+  position:absolute; left:0; right:0; bottom:0; z-index:2;
+  padding:22px 10px 9px; font-size:12.5px; font-weight:500;
+  color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6);
+  background:linear-gradient(transparent, rgba(0,0,0,.62));
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.why{
+  margin-top:14px; padding-top:14px; border-top:1px solid var(--line);
+  font-size:14px; color:var(--ink-2); position:relative; z-index:1;
+}
+.why b{color:var(--ink);font-weight:600;}
+
+/* ---------- closet grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.tile{
+  position:relative;aspect-ratio:1/1;border-radius:var(--r-m);overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--line);min-width:0;
+}
+.tile img{width:100%;height:100%;object-fit:cover;}
+.tile .nm{
+  position:absolute;left:0;right:0;bottom:0;padding:18px 8px 7px;
+  font-size:11.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);
+  background:linear-gradient(transparent,rgba(0,0,0,.6));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tile.sel{outline:2.5px solid var(--violet);outline-offset:-2.5px;}
+.tile .tick{
+  position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;
+  background:var(--violet);color:#fff;display:none;align-items:center;justify-content:center;font-size:13px;
+}
+.tile.sel .tick{display:flex;}
+.tile.add{
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px dashed var(--line-2);background:transparent;color:var(--ink-3);
+}
+
+/* ---------- sheet ---------- */
+#scrim{
+  position:fixed;inset:0;z-index:80;background:rgba(8,9,12,.5);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  display:none;
+}
+#scrim.on{display:block;}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:90;
+  background:var(--bg);border-top-left-radius:26px;border-top-right-radius:26px;
+  border-top:1px solid var(--line);
+  max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:8px 18px calc(26px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  display:none;
+}
+.sheet.on{display:block;transform:none;}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line-2);margin:8px auto 14px;}
+.sheet h2{margin-bottom:14px;}
+.stack{display:flex;flex-direction:column;gap:18px;}
+
+/* ---------- skin tone ---------- */
+#toneStage{position:relative;border-radius:var(--r-m);overflow:hidden;background:var(--sunk);border:1px solid var(--line);}
+#toneCanvas{width:100%;display:block;touch-action:manipulation;}
+.crosshair{position:absolute;width:26px;height:26px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1.5px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(0,0,0,.5);transform:translate(-50%,-50%);pointer-events:none;}
+.swatches{display:flex;gap:7px;flex-wrap:wrap;}
+.sw{width:36px;height:36px;border-radius:9px;border:1px solid var(--line-2);position:relative;}
+.sw button{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:11px;line-height:18px;text-align:center;}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;}
+.pal{border-radius:var(--r-s);overflow:hidden;border:1px solid var(--line);}
+.pal .c{height:44px;}
+.pal .t{font-size:10.5px;padding:5px 6px;color:var(--ink-2);background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--display);letter-spacing:.03em;}
+
+.stat{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);gap:14px;}
+.stat:last-child{border-bottom:none;}
+.stat dt{font-size:14px;color:var(--ink-2);flex:0 0 auto;}
+.stat dd{margin:0;font-family:var(--display);font-weight:600;font-size:15px;text-align:right;min-width:0;}
+
+.note{
+  background:var(--violet-soft);border:1px solid color-mix(in srgb,var(--violet) 28%, transparent);
+  color:var(--ink);border-radius:var(--r-m);padding:13px 15px;font-size:14px;
+}
+.note b{font-weight:600;}
+.toast{
+  position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(14px);
+  background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
+  font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
+  opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
+}
+.toast.on{opacity:1;transform:translateX(-50%);}
+.hidden{display:none!important;}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.mini{font-size:13px;color:var(--ink-2);}
+hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<!-- ============ TODAY ============ -->
+<section class="screen on" id="s-today">
+  <div class="head">
+    <div class="eyebrow" id="dateline">—</div>
+    <h1>What's the plan?</h1>
+  </div>
+
+  <div class="chips" id="occasions"></div>
+
+  <div class="wrap" style="margin-top:14px">
+    <div class="spread" style="margin-bottom:10px">
+      <span class="label" style="margin:0">Feels like</span>
+      <span class="mini" id="tempRead">Mild</span>
+    </div>
+    <div class="seg" id="tempSeg">
+      <button data-t="1">Cool</button>
+      <button data-t="2" aria-pressed="true">Mild</button>
+      <button data-t="3">Warm</button>
+      <button data-t="4">Hot</button>
+    </div>
+  </div>
+
+  <div class="wrap" style="margin-top:20px" id="todayOut"></div>
+</section>
+
+<!-- ============ CLOSET ============ -->
+<section class="screen" id="s-closet">
+  <div class="head">
+    <div class="eyebrow">Your closet</div>
+    <h1 id="closetCount">Nothing in here yet</h1>
+  </div>
+  <div class="chips" id="catFilter"></div>
+  <div class="wrap" style="margin-top:14px">
+    <div class="grid" id="closetGrid"></div>
+  </div>
+</section>
+
+<!-- ============ BUILD ============ -->
+<section class="screen" id="s-build">
+  <div class="head">
+    <div class="eyebrow">Finish the fit</div>
+    <h1>Pick what you've<br>already got on</h1>
+    <p class="sub">Tap the pieces you're wearing. I'll fill in what's missing.</p>
+  </div>
+  <div class="wrap">
+    <div id="buildPicked"></div>
+    <button class="btn soft" id="pickBtn" style="margin-top:14px">Choose pieces</button>
+    <div id="buildOut" style="margin-top:20px"></div>
+  </div>
+</section>
+
+<!-- ============ ME ============ -->
+<section class="screen" id="s-me">
+  <div class="head">
+    <div class="eyebrow">Your palette</div>
+    <h1>Colour read</h1>
+    <p class="sub">Add 2–4 photos in different light and tap your skin in each. Averaging across shots is what makes the read hold up.</p>
+  </div>
+  <div class="wrap stack">
+    <div class="card stack" style="gap:14px">
+      <div>
+        <span class="label">Samples</span>
+        <div class="swatches" id="swatches"><span class="mini">None yet.</span></div>
+      </div>
+      <div id="toneStageWrap" class="hidden">
+        <div id="toneStage"><canvas id="toneCanvas"></canvas><div class="crosshair hidden" id="cross"></div></div>
+        <p class="mini" style="margin:9px 0 0">Tap a patch of skin — cheek, forehead or the back of your hand. Avoid shadow and blown-out highlights.</p>
+      </div>
+      <div class="row">
+        <button class="btn soft sm" id="addToneBtn" style="width:100%">Add a photo</button>
+        <button class="btn ghost sm" id="clearToneBtn" style="width:100%">Clear</button>
+      </div>
+    </div>
+
+    <div id="toneResult"></div>
+
+    <div>
+      <span class="label">Saved looks</span>
+      <div class="grid" id="savedGrid"></div>
+    </div>
+
+    <hr class="sep">
+    <div class="card stack" style="gap:12px">
+      <h2>Add to your Home Screen</h2>
+      <p class="mini" style="margin:0">In Safari, tap the Share button, then <b>Add to Home Screen</b>. It opens full screen with no browser bar, works offline, and follows your phone's light/dark schedule.</p>
+      <button class="btn ghost sm" id="wipeBtn" style="width:100%">Erase everything</button>
+      <p class="mini" id="storeNote" style="margin:0"></p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- ============ TAB BAR ============ -->
+<nav id="tabs">
+  <button data-s="today" aria-selected="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.4 5.4 7 7M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+    <span>Today</span><i class="dot"></i>
+  </button>
+  <button data-s="closet" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3.4a2.1 2.1 0 1 0 1.6 3.45L12 8.2l7.9 5.1a2 2 0 0 1-1.1 3.66H5.2a2 2 0 0 1-1.1-3.66L12 8.2"/></svg>
+    <span>Closet</span><i class="dot"></i>
+  </button>
+  <button data-s="build" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h9M4 12h16M4 18h9"/><path d="M17.5 3.5v5M20 6h-5"/></svg>
+    <span>Build</span><i class="dot"></i>
+  </button>
+  <button data-s="me" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
+    <span>Me</span><i class="dot"></i>
+  </button>
+</nav>
+
+<!-- ============ SHEETS ============ -->
+<div id="scrim"></div>
+
+<div class="sheet" id="sheet-item">
+  <div class="grab"></div>
+  <h2 id="itemTitle">Add a piece</h2>
+  <div class="stack">
+    <div id="itemPreviewWrap" class="hidden">
+      <img id="itemPreview" style="width:100%;border-radius:var(--r-m);aspect-ratio:1/1;object-fit:cover;border:1px solid var(--line)">
+      <div class="spread" style="margin-top:10px">
+        <span class="mini">Colour picked up</span>
+        <span id="itemSwatch" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);display:inline-block"></span>
+      </div>
+    </div>
+    <div>
+      <span class="label">What is it?</span>
+      <input class="field" id="itemName" placeholder="Faded black tee" autocomplete="off">
+    </div>
+    <div>
+      <span class="label">Category</span>
+      <div class="seg" id="itemCat" style="flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div>
+      <span class="label">How dressed up</span>
+      <div class="seg" id="itemFormal">
+        <button data-v="1">Lounge</button><button data-v="2">Casual</button>
+        <button data-v="3" aria-pressed="true">Smart</button><button data-v="4">Sharp</button><button data-v="5">Formal</button>
+      </div>
+    </div>
+    <div>
+      <span class="label">Warmth</span>
+      <div class="seg" id="itemWarm">
+        <button data-v="1">Airy</button><button data-v="2">Light</button>
+        <button data-v="3" aria-pressed="true">Mid</button><button data-v="4">Warm</button><button data-v="5">Heavy</button>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="saveItem">Save piece</button>
+    </div>
+    <button class="btn ghost" id="deleteItem">Remove from closet</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-pick">
+  <div class="grab"></div>
+  <h2>What are you wearing?</h2>
+  <div class="wrap" style="padding:0">
+    <div class="grid" id="pickGrid" style="margin-top:4px"></div>
+    <button class="btn" id="pickDone" style="margin-top:18px">Fill the gaps</button>
+  </div>
+</div>
+
+<input type="file" accept="image/*" id="fileIn" class="hidden">
+<input type="file" accept="image/*" id="toneIn" class="hidden">
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   STORAGE — IndexedDB, with an in-memory fallback so the app
+   still runs if the browser blocks persistence.
+   ============================================================ */
+const DB = (() => {
+  const NAME = 'marinelayer', STORE = 'kv';
+  let dbp = null, memory = null;
+  function open(){
+    if (memory) return Promise.reject('memory');
+    if (dbp) return dbp;
+    dbp = new Promise((res, rej) => {
+      let r;
+      try { r = indexedDB.open(NAME, 1); } catch(e){ return rej(e); }
+      r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+      setTimeout(() => rej('timeout'), 3000);
+    });
+    return dbp;
+  }
+  function tx(mode, fn){
+    return open().then(db => new Promise((res, rej) => {
+      const t = db.transaction(STORE, mode);
+      const req = fn(t.objectStore(STORE));
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    }));
+  }
+  return {
+    fallback(){ return !!memory; },
+    async get(k){
+      try { const v = await tx('readonly', s => s.get(k)); return v === undefined ? null : v; }
+      catch(e){ memory = memory || {}; return memory[k] ?? null; }
+    },
+    async set(k, v){
+      try { await tx('readwrite', s => s.put(v, k)); }
+      catch(e){ memory = memory || {}; memory[k] = v; }
+    }
+  };
+})();
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = {
+  items: [],        // {id,name,cat,formal,warm,rgb,img}
+  samples: [],      // {rgb}
+  looks: [],        // {id, itemIds, occasion, ts}
+  temp: 2,
+  occasion: 'coffee',
+  lastOutfit: null,
+  picked: []
+};
+
+const CATS = [
+  {id:'top',    label:'Top'},
+  {id:'bottom', label:'Bottom'},
+  {id:'onepiece',label:'One-piece'},
+  {id:'outer',  label:'Layer'},
+  {id:'shoes',  label:'Shoes'},
+  {id:'acc',    label:'Extra'}
+];
+const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.label]));
+
+/* Los Angeles, as a set of places you actually go */
+const OCCASIONS = [
+  {id:'home',    name:'Chill at home', formal:[1,2],  shoes:false, outer:'maybe', acc:'no',    warmShift:0,
+   line:'Nothing to prove. Softest thing that still counts as an outfit.'},
+  {id:'work',    name:'Work',          formal:[3,4],  shoes:true,  outer:'often', acc:'maybe', warmShift:1,
+   line:'Offices run cold even when it is 80 outside — a layer earns its place.'},
+  {id:'coffee',  name:'Coffee run',    formal:[2,3],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
+   line:'Ten minutes of effort that reads as none.'},
+  {id:'friends', name:'With friends',  formal:[2,3],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
+   line:'Easy, a little considered. One piece doing the talking.'},
+  {id:'dinner',  name:'Dinner out',    formal:[3,5],  shoes:true,  outer:'maybe', acc:'often', warmShift:1,
+   line:'Patio heaters are a lie. Bring the layer.'},
+  {id:'night',   name:'Night out',     formal:[3,5],  shoes:true,  outer:'maybe', acc:'often', warmShift:1,
+   line:'Darker, sharper, and shoes you can stand in.'},
+  {id:'beach',   name:'Beach day',     formal:[1,2],  shoes:true,  outer:'often', acc:'often', warmShift:-1,
+   line:'It turns on you at 4pm. Pack the extra layer anyway.'},
+  {id:'hike',    name:'Hike',          formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1,
+   line:'Hot going up, cold at the top, sun the whole time.'},
+  {id:'market',  name:'Farmers market',formal:[2,3],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
+   line:'Morning grey burns off around eleven. Dress for both.'},
+  {id:'gallery', name:'Gallery / show',formal:[3,4],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
+   line:'Quiet colours, one loud detail.'}
+];
+const OCC = Object.fromEntries(OCCASIONS.map(o => [o.id, o]));
+
+const TEMP_TARGET = {1:4, 2:3, 3:2, 4:1};
+const TEMP_NAME   = {1:'Cool · under 60°', 2:'Mild · 60–72°', 3:'Warm · 72–85°', 4:'Hot · 85°+'};
+
+/* ============================================================
+   COLOUR MATH
+   ============================================================ */
+function srgbToLab(r, g, b){
+  const f = c => { c /= 255; return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+  const R = f(r), G = f(g), B = f(b);
+  let X = (R*0.4124564 + G*0.3575761 + B*0.1804375) / 0.95047;
+  let Y = (R*0.2126729 + G*0.7151522 + B*0.0721750);
+  let Z = (R*0.0193339 + G*0.1191920 + B*0.9503041) / 1.08883;
+  const k = t => t > 0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const fx = k(X), fy = k(Y), fz = k(Z);
+  return { L: 116*fy - 16, a: 500*(fx - fy), b: 200*(fy - fz) };
+}
+function rgbToHsl(r, g, b){
+  r/=255; g/=255; b/=255;
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+  let h = 0;
+  if (d){
+    if (mx === r) h = ((g - b)/d) % 6;
+    else if (mx === g) h = (b - r)/d + 2;
+    else h = (r - g)/d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  const l = (mx + mn)/2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
+  return { h, s, l };
+}
+const hex = ([r,g,b]) => '#' + [r,g,b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('');
+
+/* Is this piece effectively a neutral? Neutrals go with everything. */
+function isNeutral(rgb){
+  const { s, l } = rgbToHsl(...rgb);
+  return s < 0.16 || l < 0.13 || l > 0.90;
+}
+
+/* Two colours sitting next to each other: does it work? 0–1 */
+function harmony(a, b){
+  if (isNeutral(a) || isNeutral(b)) return 0.88;
+  const A = rgbToHsl(...a), B = rgbToHsl(...b);
+  let d = Math.abs(A.h - B.h); if (d > 180) d = 360 - d;
+  let base;
+  if (d < 22) base = 0.94;          // tonal
+  else if (d < 52) base = 0.82;     // analogous
+  else if (d < 118) base = 0.36;    // the awkward zone
+  else if (d < 148) base = 0.58;
+  else base = 0.86;                 // opposites, on purpose
+  // two loud saturated pieces fighting each other
+  const loud = Math.min(A.s, B.s);
+  if (loud > 0.62 && d > 30) base -= 0.14;
+  return Math.max(0, Math.min(1, base));
+}
+
+/* Dominant colour of a garment photo — weighted to the centre so
+   the wall behind it doesn't win. */
+function dominantColor(img){
+  const N = 64;
+  const c = document.createElement('canvas');
+  c.width = N; c.height = N;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(img, 0, 0, N, N);
+  const d = x.getImageData(0, 0, N, N).data;
+  const buckets = new Map();
+  for (let py = 0; py < N; py++){
+    for (let px = 0; px < N; px++){
+      const i = (py*N + px) * 4;
+      if (d[i+3] < 200) continue;
+      const dx = (px - N/2) / (N/2), dy = (py - N/2) / (N/2);
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > 0.95) continue;
+      const w = dist < 0.5 ? 3 : (dist < 0.75 ? 2 : 1);
+      const key = (d[i] >> 4) * 256 + (d[i+1] >> 4) * 16 + (d[i+2] >> 4);
+      const e = buckets.get(key) || [0,0,0,0];
+      e[0] += d[i]*w; e[1] += d[i+1]*w; e[2] += d[i+2]*w; e[3] += w;
+      buckets.set(key, e);
+    }
+  }
+  let best = null, bestN = 0;
+  for (const e of buckets.values()) if (e[3] > bestN){ bestN = e[3]; best = e; }
+  if (!best) return [128,128,128];
+  return [best[0]/best[3], best[1]/best[3], best[2]/best[3]].map(Math.round);
+}
+
+/* ---- skin tone ---- */
+function readTone(samples){
+  if (!samples.length) return null;
+  const avg = samples.reduce((a, s) => [a[0]+s.rgb[0], a[1]+s.rgb[1], a[2]+s.rgb[2]], [0,0,0]).map(v => v/samples.length);
+  const lab = srgbToLab(...avg);
+  // Individual Typology Angle — the standard measure of skin depth
+  const ita = Math.atan((lab.L - 50) / (lab.b || 0.0001)) * 180 / Math.PI;
+  let depth;
+  if (ita > 55) depth = 'Very light';
+  else if (ita > 41) depth = 'Light';
+  else if (ita > 28) depth = 'Intermediate';
+  else if (ita > 10) depth = 'Tan';
+  else if (ita > -30) depth = 'Brown';
+  else depth = 'Deep';
+  // hue angle in Lab: how golden vs how pink
+  const hue = Math.atan2(lab.b, lab.a) * 180 / Math.PI;
+  let undertone, confidence;
+  if (hue >= 51){ undertone = 'Warm'; confidence = Math.min(1, (hue - 51) / 8); }
+  else if (hue <= 44){ undertone = 'Cool'; confidence = Math.min(1, (44 - hue) / 8); }
+  else { undertone = 'Neutral'; confidence = 0.55; }
+  if (samples.length < 2) confidence *= 0.6;
+  return { rgb: avg.map(Math.round), lab, ita, hue, depth, undertone, confidence, n: samples.length };
+}
+
+const PALETTES = {
+  Warm: {
+    hues: [[15,65],[65,110]],
+    love: [['#C4703F','Rust'],['#B4924F','Ochre'],['#5E6B3C','Olive'],['#F0E3CC','Cream'],['#8C5A3C','Chestnut'],['#2E5148','Pine'],['#D9B48A','Camel']],
+    swerve: [['#1F2E7A','Icy navy'],['#C7CED6','Cold grey'],['#F7F7F7','Optic white']],
+    line: 'Golden undertone. Anything sun-baked sits right on you; true icy colours fight it.'
+  },
+  Cool: {
+    hues: [[190,260],[260,330],[330,360],[0,15]],
+    love: [['#1E3557','Navy'],['#6B1E3A','Wine'],['#4A5560','Slate'],['#F6F6F6','Clean white'],['#1F5C4A','Emerald'],['#8E9AB0','Fog'],['#5B3D6B','Jacaranda']],
+    swerve: [['#C89B52','Warm gold'],['#B4A276','Beige-yellow'],['#C4703F','Rust']],
+    line: 'Pink-to-blue undertone. Cold, clear colours read crisp on you; warm yellows go muddy.'
+  },
+  Neutral: {
+    hues: [[0,360]],
+    love: [['#3E4A55','Denim'],['#7A8471','Sage'],['#A8574D','Brick'],['#EDE7DC','Bone'],['#2F3A46','Ink'],['#B08A94','Dusty rose'],['#4E7B7F','Teal']],
+    swerve: [['#F2FF4D','Neon'],['#FF7DD8','Hot pink']],
+    line: 'Balanced undertone — the easy one. Mid-saturation colours flatter you most; only fluorescents push back.'
+  }
+};
+
+function paletteFit(rgb, tone){
+  if (!tone) return 0.5;
+  if (isNeutral(rgb)){
+    const { h, s, l } = rgbToHsl(...rgb);
+    if (s < 0.16 && l > 0.75){ // whites and creams are not interchangeable
+      const warmWhite = h > 20 && h < 70;
+      if (tone.undertone === 'Warm')  return warmWhite ? 0.95 : 0.6;
+      if (tone.undertone === 'Cool')  return warmWhite ? 0.6  : 0.95;
+    }
+    return 0.82;
+  }
+  const { h } = rgbToHsl(...rgb);
+  const inRange = PALETTES[tone.undertone].hues.some(([a, b]) => h >= a && h <= b);
+  return inRange ? 0.95 : 0.55;
+}
+
+/* ============================================================
+   OUTFIT ENGINE
+   ============================================================ */
+function slotsFor(occ, hasOnepiece){
+  const base = hasOnepiece ? ['onepiece'] : ['top','bottom'];
+  const s = base.slice();
+  if (occ.shoes) s.push('shoes');
+  return s;
+}
+function byCat(c){ return S.items.filter(i => i.cat === c); }
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+function scoreItem(item, occ, tone){
+  const [lo, hi] = occ.formal;
+  const fMiss = item.formal < lo ? lo - item.formal : (item.formal > hi ? item.formal - hi : 0);
+  const fScore = Math.max(0, 1 - fMiss * 0.34);
+  const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
+  const wScore = Math.max(0, 1 - Math.abs(item.warm - target) * 0.22);
+  const pScore = paletteFit(item.rgb, tone);
+  const days = item.lastWorn ? (Date.now() - item.lastWorn) / 864e5 : 99;
+  const fresh = days > 6 ? 1 : 0.45 + days * 0.09;
+  return fScore * 1.5 + wScore * 1.1 + pScore * 1.0 + fresh * 0.7;
+}
+
+function buildOutfit(occ, tone, avoidKey){
+  const tops = byCat('top'), bottoms = byCat('bottom'), ones = byCat('onepiece');
+  const shoes = byCat('shoes'), outers = byCat('outer'), accs = byCat('acc');
+  const canPair = tops.length && bottoms.length;
+  if (!canPair && !ones.length) return null;
+
+  let best = null, bestScore = -1;
+  for (let trial = 0; trial < 420; trial++){
+    const useOne = ones.length && (!canPair || Math.random() < 0.3);
+    const core = useOne ? [pick(ones)] : [pick(tops), pick(bottoms)];
+    const set = core.slice();
+    if (occ.shoes && shoes.length) set.push(pick(shoes));
+    if (occ.outer !== 'no' && outers.length){
+      const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
+      const want = occ.outer === 'often' ? 0.72 : 0.34;
+      if (Math.random() < want * (target / 3)) set.push(pick(outers));
+    }
+    if (occ.acc !== 'no' && accs.length){
+      if (Math.random() < (occ.acc === 'often' ? 0.6 : 0.3)) set.push(pick(accs));
+    }
+    if (new Set(set.map(i => i.id)).size !== set.length) continue;
+
+    const key = set.map(i => i.id).sort().join('|');
+    let sc = set.reduce((a, i) => a + scoreItem(i, occ, tone), 0) / set.length;
+    let pairs = 0, hsum = 0;
+    for (let a = 0; a < set.length; a++)
+      for (let b = a+1; b < set.length; b++){ hsum += harmony(set[a].rgb, set[b].rgb); pairs++; }
+    if (pairs) sc += (hsum / pairs) * 1.9;
+    sc += Math.random() * 0.22;                 // keeps re-rolls interesting
+    if (key === avoidKey) sc -= 1.6;
+    if (sc > bestScore){ bestScore = sc; best = set; }
+  }
+  return best;
+}
+
+/* Given what's already on, what's the best thing for one empty slot? */
+function suggestFor(cat, worn, occ, tone){
+  const pool = byCat(cat).filter(i => !worn.some(w => w.id === i.id));
+  if (!pool.length) return null;
+  let best = null, bs = -1;
+  for (const it of pool){
+    let sc = scoreItem(it, occ, tone);
+    if (worn.length){
+      let h = 0;
+      for (const w of worn) h += harmony(it.rgb, w.rgb);
+      sc += (h / worn.length) * 2.2;
+    }
+    if (sc > bs){ bs = sc; best = it; }
+  }
+  return best;
+}
+
+/* Plain-language reason the outfit looks the way it does */
+function explain(set, occ, tone){
+  const bits = [];
+  const loud = set.filter(i => !isNeutral(i.rgb));
+  if (loud.length === 0) bits.push('All neutrals, so nothing competes');
+  else if (loud.length === 1) bits.push(`<b>${esc(loud[0].name)}</b> is the one piece carrying colour`);
+  else {
+    let d = Math.abs(rgbToHsl(...loud[0].rgb).h - rgbToHsl(...loud[1].rgb).h);
+    if (d > 180) d = 360 - d;
+    bits.push(d < 52 ? 'Colours sit close together, so it reads as one thing' : 'Two colours pulling against each other on purpose');
+  }
+  if (tone && tone.confidence > 0.4){
+    const good = set.filter(i => paletteFit(i.rgb, tone) > 0.85).length;
+    if (good) bits.push(`${good} piece${good>1?'s':''} in your ${tone.undertone.toLowerCase()} range`);
+  }
+  const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
+  const avg = set.reduce((a,i) => a + i.warm, 0) / set.length;
+  if (avg < target - 0.8) bits.push('Running light for the weather — worth a layer');
+  return bits.join(' · ');
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1900);
+}
+
+function renderOccasions(){
+  $('#occasions').innerHTML = OCCASIONS.map(o =>
+    `<button class="chip" data-o="${o.id}" aria-pressed="${o.id === S.occasion}">${esc(o.name)}</button>`
+  ).join('');
+}
+
+function pieceHTML(item, slot, i){
+  const wide = slot === 'Top' || slot === 'One-piece';
+  return `<div class="piece ${wide ? 'wide' : ''}" style="animation-delay:${i * 55}ms">
+    <span class="slot">${esc(slot)}</span>
+    <img src="${item.img}" alt="${esc(item.name)}" loading="lazy">
+    <div class="nm">${esc(item.name)}</div>
+  </div>`;
+}
+
+function layHTML(set){
+  const order = ['onepiece','top','bottom','outer','shoes','acc'];
+  const sorted = set.slice().sort((a,b) => order.indexOf(a.cat) - order.indexOf(b.cat));
+  return `<div class="lay-grid">${sorted.map((it, i) => pieceHTML(it, CATNAME[it.cat], i)).join('')}</div>`;
+}
+
+function renderToday(){
+  $('#dateline').textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  $('#tempRead').textContent = TEMP_NAME[S.temp];
+  $$('#tempSeg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.t === S.temp)));
+
+  const out = $('#todayOut');
+  const occ = OCC[S.occasion];
+  const tone = readTone(S.samples);
+
+  if (S.items.length < 2){
+    out.innerHTML = `<div class="empty">
+      <h3>Your closet is empty</h3>
+      <p>Add a few tops, bottoms and a pair of shoes and this page starts working.</p>
+      <button class="btn" onclick="go('closet')">Open the closet</button>
+    </div>`;
+    return;
+  }
+  const set = buildOutfit(occ, tone, S.lastOutfit ? S.lastOutfit.map(i => i.id).sort().join('|') : null);
+  if (!set){
+    out.innerHTML = `<div class="empty">
+      <h3>Not enough to work with</h3>
+      <p>I need at least one top and one bottom, or a one-piece.</p>
+      <button class="btn" onclick="go('closet')">Add pieces</button>
+    </div>`;
+    return;
+  }
+  S.lastOutfit = set;
+  out.innerHTML = `
+    <div class="lay">
+      ${layHTML(set)}
+      <div class="why">${explain(set, occ, tone)}</div>
+    </div>
+    <p class="mini" style="margin:12px 2px 0">${esc(occ.line)}</p>
+    <div class="row" style="margin-top:16px">
+      <button class="btn soft" id="reroll">Try another</button>
+      <button class="btn" id="wearIt">Wearing this</button>
+    </div>`;
+  $('#reroll').onclick = renderToday;
+  $('#wearIt').onclick = () => {
+    const now = Date.now();
+    set.forEach(i => { const it = S.items.find(x => x.id === i.id); if (it) it.lastWorn = now; });
+    S.looks.unshift({ id: uid(), itemIds: set.map(i => i.id), occasion: occ.id, ts: now });
+    S.looks = S.looks.slice(0, 40);
+    save(); toast('Logged — it will rest for a few days');
+    renderSaved();
+  };
+}
+
+function renderCloset(){
+  const n = S.items.length;
+  $('#closetCount').textContent = n === 0 ? 'Nothing in here yet' : `${n} piece${n > 1 ? 's' : ''}`;
+  const cur = S.catFilter || 'all';
+  $('#catFilter').innerHTML =
+    `<button class="chip" data-c="all" aria-pressed="${cur === 'all'}">All</button>` +
+    CATS.map(c => {
+      const k = S.items.filter(i => i.cat === c.id).length;
+      return `<button class="chip" data-c="${c.id}" aria-pressed="${cur === c.id}">${esc(c.label)}${k ? ` <span style="opacity:.5">${k}</span>` : ''}</button>`;
+    }).join('');
+
+  const list = cur === 'all' ? S.items : S.items.filter(i => i.cat === cur);
+  $('#closetGrid').innerHTML =
+    `<button class="tile add" id="addTile" aria-label="Add a piece">
+       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
+     </button>` +
+    list.map(i => `<button class="tile" data-id="${i.id}"><img src="${i.img}" alt="${esc(i.name)}" loading="lazy"><span class="nm">${esc(i.name)}</span></button>`).join('');
+}
+
+function renderSaved(){
+  const g = $('#savedGrid');
+  if (!S.looks.length){ g.innerHTML = `<p class="mini" style="grid-column:1/-1;margin:0">Nothing logged yet. Tap “Wearing this” on a fit and it lands here.</p>`; return; }
+  g.innerHTML = S.looks.slice(0, 9).map(l => {
+    const first = S.items.find(i => i.id === l.itemIds[0]);
+    if (!first) return '';
+    const d = new Date(l.ts).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    return `<div class="tile"><img src="${first.img}" alt=""><span class="nm">${esc(OCC[l.occasion]?.name || '')} · ${d}</span></div>`;
+  }).join('');
+}
+
+function renderTone(){
+  const sw = $('#swatches');
+  sw.innerHTML = S.samples.length
+    ? S.samples.map((s, i) => `<span class="sw" style="background:${hex(s.rgb)}"><button data-i="${i}" aria-label="Remove sample">×</button></span>`).join('')
+    : '<span class="mini">None yet.</span>';
+
+  const tone = readTone(S.samples);
+  const box = $('#toneResult');
+  if (!tone){ box.innerHTML = ''; return; }
+  const P = PALETTES[tone.undertone];
+  const conf = tone.confidence > 0.7 ? 'Clear' : tone.confidence > 0.4 ? 'Fairly clear' : 'Rough — add another photo';
+  box.innerHTML = `
+    <div class="card stack" style="gap:16px">
+      <div class="spread">
+        <div style="min-width:0">
+          <h2>${esc(tone.undertone)} undertone</h2>
+          <p class="mini" style="margin:3px 0 0">${esc(tone.depth)} depth · ${esc(conf)}</p>
+        </div>
+        <span style="width:46px;height:46px;border-radius:12px;flex:0 0 auto;border:1px solid var(--line-2);background:${hex(tone.rgb)}"></span>
+      </div>
+      <p style="margin:0;font-size:14.5px;color:var(--ink-2)">${esc(P.line)}</p>
+      <div>
+        <span class="label">Colours that work</span>
+        <div class="palette">${P.love.map(([c, n]) => `<div class="pal"><div class="c" style="background:${c}"></div><div class="t">${esc(n)}</div></div>`).join('')}</div>
+      </div>
+      <div>
+        <span class="label">Handle with care</span>
+        <div class="palette">${P.swerve.map(([c, n]) => `<div class="pal"><div class="c" style="background:${c}"></div><div class="t">${esc(n)}</div></div>`).join('')}</div>
+      </div>
+      <dl style="margin:0">
+        <div class="stat"><dt>ITA angle</dt><dd>${tone.ita.toFixed(1)}°</dd></div>
+        <div class="stat"><dt>Lab hue</dt><dd>${tone.hue.toFixed(1)}°</dd></div>
+        <div class="stat"><dt>Samples averaged</dt><dd>${tone.n}</dd></div>
+      </dl>
+      <p class="mini" style="margin:0">This nudges outfit picks toward your range — it never blocks a piece you own.</p>
+    </div>`;
+}
+
+function renderBuild(){
+  const wrap = $('#buildPicked');
+  if (!S.picked.length){
+    wrap.innerHTML = `<p class="mini" style="margin:0">Nothing picked yet.</p>`;
+  } else {
+    const items = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean);
+    wrap.innerHTML = `<div class="grid">${items.map(i => `<div class="tile"><img src="${i.img}" alt=""><span class="nm">${esc(i.name)}</span></div>`).join('')}</div>`;
+  }
+}
+
+function runBuild(){
+  const worn = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean);
+  const out = $('#buildOut');
+  if (!worn.length){ out.innerHTML = ''; return; }
+  const occ = OCC[S.occasion];
+  const tone = readTone(S.samples);
+  const have = new Set(worn.map(i => i.cat));
+  const wants = [];
+  if (!have.has('onepiece')){
+    if (!have.has('top')) wants.push('top');
+    if (!have.has('bottom')) wants.push('bottom');
+  }
+  if (!have.has('shoes')) wants.push('shoes');
+  if (!have.has('outer') && S.temp <= 2) wants.push('outer');
+  if (!have.has('acc')) wants.push('acc');
+
+  const found = wants.map(c => ({ cat: c, item: suggestFor(c, worn, occ, tone) })).filter(x => x.item);
+  if (!found.length){
+    out.innerHTML = `<div class="note">That's a complete fit already — nothing in your closet improves it for a ${esc(occ.name.toLowerCase())}.</div>`;
+    return;
+  }
+  out.innerHTML = `
+    <span class="label">Add these</span>
+    <div class="lay">
+      <div class="lay-grid">${found.map((f, i) => pieceHTML(f.item, CATNAME[f.cat], i)).join('')}</div>
+      <div class="why">Matched against what you've already got on, for a <b>${esc(occ.name.toLowerCase())}</b>.</div>
+    </div>
+    <p class="mini" style="margin:12px 2px 0">Change the occasion on the Today tab to get a different read.</p>`;
+}
+
+/* ============================================================
+   PHOTOS
+   ============================================================ */
+function loadImage(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = fr.result; };
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+function shrink(img, max, q){
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', q);
+}
+
+/* ============================================================
+   SHEETS
+   ============================================================ */
+let editing = null, pendingImg = null, pendingRGB = null;
+
+function openSheet(id){ $('#scrim').classList.add('on'); $(id).classList.add('on'); document.body.style.overflow = 'hidden'; }
+function closeSheets(){ $('#scrim').classList.remove('on'); $$('.sheet').forEach(s => s.classList.remove('on')); document.body.style.overflow = ''; }
+
+function fillSeg(sel, v){ $$(sel + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
+function segVal(sel){ const b = $(sel + ' button[aria-pressed="true"]'); return b ? +b.dataset.v : 3; }
+
+function openItemSheet(item){
+  editing = item || null;
+  $('#itemTitle').textContent = item ? 'Edit piece' : 'Add a piece';
+  $('#itemCat').innerHTML = CATS.map(c => `<button data-v="${c.id}">${esc(c.label)}</button>`).join('');
+  $('#deleteItem').classList.toggle('hidden', !item);
+  if (item){
+    pendingImg = item.img; pendingRGB = item.rgb;
+    $('#itemPreviewWrap').classList.remove('hidden');
+    $('#itemPreview').src = item.img;
+    $('#itemSwatch').style.background = hex(item.rgb);
+    $('#itemName').value = item.name;
+    fillSeg('#itemCat', item.cat); fillSeg('#itemFormal', item.formal); fillSeg('#itemWarm', item.warm);
+  } else {
+    pendingImg = null; pendingRGB = null;
+    $('#itemPreviewWrap').classList.add('hidden');
+    $('#itemName').value = '';
+    fillSeg('#itemCat', 'top'); fillSeg('#itemFormal', 2); fillSeg('#itemWarm', 3);
+  }
+  openSheet('#sheet-item');
+}
+
+function openPickSheet(){
+  $('#pickGrid').innerHTML = S.items.map(i =>
+    `<button class="tile ${S.picked.includes(i.id) ? 'sel' : ''}" data-id="${i.id}">
+       <img src="${i.img}" alt=""><span class="tick">✓</span><span class="nm">${esc(i.name)}</span></button>`
+  ).join('') || '<p class="mini" style="grid-column:1/-1">Add pieces in the closet first.</p>';
+  openSheet('#sheet-pick');
+}
+
+/* ============================================================
+   SKIN TONE CAPTURE
+   ============================================================ */
+let toneImg = null;
+function drawTone(){
+  if (!toneImg) return;
+  const c = $('#toneCanvas'), stage = $('#toneStage');
+  const w = stage.clientWidth || 320;
+  const scale = w / toneImg.width;
+  c.width = w; c.height = Math.round(toneImg.height * scale);
+  c.getContext('2d', { willReadFrequently: true }).drawImage(toneImg, 0, 0, c.width, c.height);
+}
+function sampleAt(clientX, clientY){
+  const c = $('#toneCanvas'), r = c.getBoundingClientRect();
+  const x = Math.round((clientX - r.left) * (c.width / r.width));
+  const y = Math.round((clientY - r.top) * (c.height / r.height));
+  const R = 5;
+  const x0 = Math.max(0, x - R), y0 = Math.max(0, y - R);
+  const w = Math.min(R * 2 + 1, c.width - x0), h = Math.min(R * 2 + 1, c.height - y0);
+  if (w <= 0 || h <= 0) return;
+  const d = c.getContext('2d', { willReadFrequently: true }).getImageData(x0, y0, w, h).data;
+  let sr = 0, sg = 0, sb = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4){
+    const L = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    if (L < 22 || L > 246) continue;       // shadow and blown highlights lie
+    sr += d[i]; sg += d[i+1]; sb += d[i+2]; n++;
+  }
+  if (!n) return toast('Too dark or too blown out there — try another spot');
+  S.samples.push({ rgb: [Math.round(sr/n), Math.round(sg/n), Math.round(sb/n)] });
+  const ch = $('#cross');
+  ch.classList.remove('hidden');
+  ch.style.left = (clientX - r.left) + 'px';
+  ch.style.top = (clientY - r.top) + 'px';
+  save(); renderTone(); toast('Sample added');
+}
+
+/* ============================================================
+   PERSISTENCE
+   ============================================================ */
+const uid = () => Math.random().toString(36).slice(2, 10);
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp, occasion: S.occasion });
+  }, 150);
+}
+async function load(){
+  const v = await DB.get('state');
+  if (v){
+    S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
+    S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
+  }
+  $('#storeNote').textContent = DB.fallback()
+    ? 'Heads up: this browser is blocking storage, so nothing will survive a reload. Saving the file to your Home Screen fixes it.'
+    : 'Everything lives on this phone only. Nothing is uploaded anywhere.';
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+function go(name){
+  $$('.screen').forEach(s => s.classList.remove('on'));
+  $('#s-' + name).classList.add('on');
+  $$('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.s === name)));
+  window.scrollTo(0, 0);
+  if (name === 'today') renderToday();
+  if (name === 'closet') renderCloset();
+  if (name === 'build'){ renderBuild(); runBuild(); }
+  if (name === 'me'){ renderTone(); renderSaved(); }
+}
+window.go = go;
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.s); });
+
+$('#occasions').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  S.occasion = b.dataset.o;
+  $$('#occasions .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.o === S.occasion)));
+  b.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+  save(); renderToday();
+});
+
+$('#tempSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.temp = +b.dataset.t; save(); renderToday();
+});
+
+$('#catFilter').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  S.catFilter = b.dataset.c; renderCloset();
+});
+
+$('#closetGrid').addEventListener('click', e => {
+  if (e.target.closest('#addTile')) return $('#fileIn').click();
+  const t = e.target.closest('.tile[data-id]'); if (!t) return;
+  openItemSheet(S.items.find(i => i.id === t.dataset.id));
+});
+
+$('#fileIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const img = await loadImage(f);
+    pendingRGB = dominantColor(img);
+    pendingImg = shrink(img, 900, 0.78);
+    openItemSheet(null);
+    $('#itemPreviewWrap').classList.remove('hidden');
+    $('#itemPreview').src = pendingImg;
+    $('#itemSwatch').style.background = hex(pendingRGB);
+  } catch(err){ toast("Couldn't read that photo"); }
+});
+
+$('#itemCat').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemCat', b.dataset.v); });
+$('#itemFormal').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemFormal', b.dataset.v); });
+$('#itemWarm').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fillSeg('#itemWarm', b.dataset.v); });
+
+$('#saveItem').onclick = () => {
+  if (!pendingImg) return toast('Add a photo first');
+  const catBtn = $('#itemCat button[aria-pressed="true"]');
+  const rec = {
+    id: editing ? editing.id : uid(),
+    name: ($('#itemName').value || '').trim() || (catBtn ? catBtn.textContent : 'Piece'),
+    cat: catBtn ? catBtn.dataset.v : 'top',
+    formal: segVal('#itemFormal'),
+    warm: segVal('#itemWarm'),
+    rgb: pendingRGB || [128,128,128],
+    img: pendingImg,
+    lastWorn: editing ? editing.lastWorn : 0
+  };
+  if (editing) Object.assign(editing, rec); else S.items.push(rec);
+  save(); closeSheets(); renderCloset(); toast(editing ? 'Updated' : 'Added to closet');
+};
+
+$('#deleteItem').onclick = () => {
+  if (!editing) return;
+  S.items = S.items.filter(i => i.id !== editing.id);
+  S.picked = S.picked.filter(id => id !== editing.id);
+  save(); closeSheets(); renderCloset(); toast('Removed');
+};
+
+$('#pickBtn').onclick = openPickSheet;
+$('#pickGrid').addEventListener('click', e => {
+  const t = e.target.closest('.tile[data-id]'); if (!t) return;
+  const id = t.dataset.id;
+  if (S.picked.includes(id)) S.picked = S.picked.filter(x => x !== id);
+  else S.picked.push(id);
+  t.classList.toggle('sel');
+});
+$('#pickDone').onclick = () => { closeSheets(); renderBuild(); runBuild(); };
+
+$('#addToneBtn').onclick = () => $('#toneIn').click();
+$('#toneIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    toneImg = await loadImage(f);
+    $('#toneStageWrap').classList.remove('hidden');
+    $('#cross').classList.add('hidden');
+    drawTone();
+    $('#toneStageWrap').scrollIntoView({ behavior:'smooth', block:'center' });
+  } catch(err){ toast("Couldn't read that photo"); }
+});
+$('#toneCanvas').addEventListener('click', e => sampleAt(e.clientX, e.clientY));
+$('#swatches').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.samples.splice(+b.dataset.i, 1); save(); renderTone();
+});
+$('#clearToneBtn').onclick = () => {
+  S.samples = []; toneImg = null;
+  $('#toneStageWrap').classList.add('hidden');
+  save(); renderTone(); toast('Samples cleared');
+};
+
+$('#wipeBtn').onclick = () => {
+  if (!confirm('Erase your closet, samples and logged looks? This cannot be undone.')) return;
+  S.items = []; S.samples = []; S.looks = []; S.picked = []; toneImg = null;
+  $('#toneStageWrap').classList.add('hidden');
+  save(); renderCloset(); renderTone(); renderSaved(); renderToday(); toast('Erased');
+};
+
+$('#scrim').onclick = closeSheets;
+window.addEventListener('resize', () => { if (toneImg) drawTone(); });
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(async function(){
+  await load();
+  renderOccasions();
+  renderCloset(); renderTone(); renderSaved(); renderToday();
+})();
+</script>
+</body>
+</html>
