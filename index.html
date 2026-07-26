@@ -55,7 +55,7 @@ img{display:block;}
 #app{
   min-height:100%;
   padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(60px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));
+  padding-bottom:calc(60px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));
 }
 .screen{display:none; animation:fade .22s ease both;}
 .screen.on{display:block;}
@@ -88,9 +88,10 @@ h2{
   -webkit-backdrop-filter:saturate(180%) blur(18px);
   backdrop-filter:saturate(180%) blur(18px);
   border-top:1px solid var(--line);
-  /* explicit height — don't let stacked paddings decide it */
-  height:calc(52px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));
-  padding-bottom:max(4px, calc(env(safe-area-inset-bottom) - 18px));
+  /* explicit height, and the inset is capped — iOS reports a much larger
+     bottom inset in standalone mode than in Safari */
+  height:calc(52px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));
+  padding-bottom:clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px);
   align-items:end;
 }
 #tabs button{
@@ -281,7 +282,7 @@ h2{
 }
 .note b{font-weight:600;}
 .toast{
-  position:fixed;left:50%;bottom:calc(64px + max(4px, calc(env(safe-area-inset-bottom) - 18px)));transform:translateX(-50%) translateY(14px);
+  position:fixed;left:50%;bottom:calc(64px + clamp(4px, calc(env(safe-area-inset-bottom) - 18px), 18px));transform:translateX(-50%) translateY(14px);
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
   font-family:var(--display);font-weight:500;font-size:14px;z-index:120;
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
@@ -1266,7 +1267,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v1.4 · 25 Jul 2026';
+const BUILD = 'v1.5';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1325,11 +1326,28 @@ window.addEventListener('resize', () => { if (toneImg) drawTone(); });
 /* ============================================================
    BOOT
    ============================================================ */
+/* Reports what iOS actually hands us, so bar sizing stops being guesswork. */
+function measureChrome(){
+  let inset = 0;
+  try {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom);pointer-events:none;';
+    document.body.appendChild(probe);
+    inset = probe.getBoundingClientRect().height;
+    probe.remove();
+  } catch(e){}
+  const bar = $('#tabs').getBoundingClientRect().height;
+  const standalone = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  return { inset: Math.round(inset), bar: Math.round(bar), mode: standalone ? 'app' : 'safari' };
+}
+
 (async function(){
   await load();
-  $('#buildLine').textContent = BUILD;
   renderOccasions();
   renderCloset(); renderTone(); renderSaved(); renderToday();
+  const m = measureChrome();
+  $('#buildLine').textContent = `${BUILD} · ${m.mode} · inset ${m.inset} · bar ${m.bar}`;
 })();
 </script>
 </body>
