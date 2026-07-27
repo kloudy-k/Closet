@@ -1544,12 +1544,7 @@ $('#fileIn').addEventListener('change', async e => {
   let tags = null;
   try {
     tags = await tagPhoto(shrink(img, 1024, 0.8));
-  } catch(err){
-    const m = String(err.message || '');
-    toast(m === '401' ? 'API key rejected — check it in Me' :
-          m === '429' ? 'Rate limited — tagging by hand' :
-          'Auto-tagging failed — filling in by hand');
-  }
+  } catch(err){ toast(apiError(err)); }
   busy(false);
 
   if (tags && tags.length > 1) openReview(img, tags);
@@ -1624,7 +1619,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.5';
+const BUILD = 'v2.6';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1677,22 +1672,64 @@ $('#importIn').addEventListener('change', async e => {
 const TAG_MODEL = 'claude-haiku-4-5-20251001';
 const STYLE_MODEL = 'claude-sonnet-5';
 
+const NL = String.fromCharCode(10);
+
 async function callClaude(model, content, maxTokens){
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'content-type':'application/json',
-      'x-api-key': S.apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body: JSON.stringify({ model, max_tokens: maxTokens, messages:[{ role:'user', content }] })
-  });
-  if (!r.ok) throw new Error(String(r.status));
+  let r;
+  try {
+    r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key': S.apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model, max_tokens: maxTokens, messages:[{ role:'user', content }] })
+    });
+  } catch(net){ const e = new Error('No connection'); e.status = 0; throw e; }
+
+  if (!r.ok){
+    let detail = '';
+    try { const j = await r.json(); detail = (j.error && j.error.message) || ''; } catch(_){}
+    const e = new Error(detail || ('HTTP ' + r.status));
+    e.status = r.status;
+    throw e;
+  }
   const d = await r.json();
-  return (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+  const text = (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+  if (d.stop_reason === 'max_tokens'){
+    const e = new Error('Response cut off \u2014 too much to say');
+    e.status = 'trunc'; e.partial = text; throw e;
+  }
+  if (!text){ const e = new Error('Empty response'); e.status = 'empty'; throw e; }
+  return text;
 }
-const parseJSON = t => JSON.parse(t.replace(/```json|```/g, '').trim());
+
+/* Models sometimes wrap JSON in a sentence. Pull out the object anyway. */
+function parseJSON(t){
+  let s = String(t).replace(/```json|```/g, '').trim();
+  try { return JSON.parse(s); } catch(_){}
+  const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  const c = s.indexOf('['), e2 = s.lastIndexOf(']');
+  const tryIt = (i, j) => { if (i >= 0 && j > i){ try { return JSON.parse(s.slice(i, j + 1)); } catch(_){} } return null; };
+  return tryIt(a, b) || tryIt(c, e2) || (() => { const err = new Error('Unreadable reply'); err.status = 'parse'; throw err; })();
+}
+
+/* One place that turns any failure into something the person can act on. */
+function apiError(err){
+  const s = err && err.status;
+  if (s === 401) return 'API key rejected \u2014 re-add it in the Me tab';
+  if (s === 400) return 'Request rejected: ' + (err.message || '').slice(0, 70);
+  if (s === 402 || s === 403) return 'Billing issue \u2014 check credit at console.anthropic.com';
+  if (s === 429) return 'Rate limited \u2014 wait a moment and retry';
+  if (s === 413) return 'Closet too large to send in one request';
+  if (s === 529 || s === 503) return 'Anthropic is busy \u2014 try again shortly';
+  if (s === 0) return 'No connection';
+  if (s === 'trunc') return 'Reply got cut off \u2014 try again';
+  if (s === 'parse' || s === 'empty') return 'Reply came back unreadable \u2014 try again';
+  return (err && err.message) ? String(err.message).slice(0, 80) : 'Something went wrong';
+}
 
 const TAG_PROMPT = `You are tagging clothing for a personal wardrobe app.
 
@@ -1879,14 +1916,14 @@ async function runStylist(){
     try { text = await callClaude(STYLE_MODEL, prompt, 900); }
     catch(e){
       // fall back to the model we know is reachable on this key
-      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, prompt, 900);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, prompt, 900);
       else throw e;
     }
     res = parseJSON(text);
   } catch(err){
-    const m = String(err.message || '');
-    toast(m === '401' ? 'API key rejected — check it in Me' :
-          m === '429' ? 'Rate limited — try again shortly' : 'Styling failed — try again');
+    const msg = apiError(err);
+    $('#buildOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
+    toast(msg);
   }
   busy(false);
   if (res) renderStyle(res, worn);
@@ -1954,7 +1991,7 @@ async function howToWear(set){
 Weather: ${TEMP_NAME[S.temp]}.
 
 THE OUTFIT:
-${set.map(describe).join('\\n')}
+${set.map(describe).join(NL)}
 
 They already know WHAT to wear. They want to know HOW to wear it \u2014 the physical execution.
 
@@ -1971,7 +2008,7 @@ No flattery, no restating what the items are.`;
     let text;
     try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 700); }
     catch(e){
-      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 700);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 700);
       else throw e;
     }
     const res = parseJSON(text);
@@ -1980,9 +2017,9 @@ No flattery, no restating what the items are.`;
       <div class="note">${esc(res.blurb)}</div>` +
       (res.watch ? `<p class="mini" style="margin:10px 2px 0"><b>Watch out:</b> ${esc(res.watch)}</p>` : '');
   } catch(err){
-    const m = String(err.message || '');
-    toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
-          m === '429' ? 'Rate limited \u2014 try again shortly' : 'Couldn\u2019t reach the stylist');
+    const msg = apiError(err);
+    out.innerHTML = `<div class="note">${esc(msg)}</div>`;
+    toast(msg);
   } finally {
     busy(false);
     out.scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -2071,7 +2108,18 @@ async function tripWeather(days){
 
 async function packTrip(){
   if (!S.apiKey) return toast('Add an API key in the Me tab first');
-  if (!packGeo) return toast('Pick a destination first');
+  // if they typed a city but never tapped a result, just look it up for them
+  if (!packGeo && $('#packCity').value.trim()){
+    await packSearch();
+    if (packHits.length){
+      const c = packHits[0];
+      packGeo = { la:+c.latitude.toFixed(3), lo:+c.longitude.toFixed(3) };
+      packPlace = [c.name, c.admin1, c.country_code].filter(Boolean).join(', ');
+      $('#packHitsBox').innerHTML = ''; $('#packCity').value = '';
+      $('#packWhere').textContent = 'Packing for ' + packPlace;
+    }
+  }
+  if (!packGeo) return toast('Search for a destination first');
   if (!packOccs.size) return toast('Pick at least one activity');
   const days = +segStr('#packDays', '5');
 
@@ -2086,7 +2134,7 @@ WEATHER: ${wx.text}
 THEY'LL BE: ${[...packOccs].map(o => OCC[o].name).join(', ')}.
 
 THEIR WARDROBE:
-${S.items.map(describe).join('\\n')}
+${S.items.map(describe).join(NL)}
 
 Only use ids from that list. Never invent an item.
 
@@ -2102,9 +2150,9 @@ Reply with ONLY this JSON, no prose or fences:
 
 Give at least ${Math.min(days, 5)} fits. Keep the pack list tight and justified.`;
     let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1600); }
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 3000); }
     catch(e){
-      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1600);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 3000);
       else throw e;
     }
     const res = parseJSON(text);
@@ -2126,9 +2174,9 @@ Give at least ${Math.min(days, 5)} fits. Keep the pack list tight and justified.
         </div>`).join('') + '</div>' : '');
     $('#packOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
   } catch(err){
-    const m = String(err.message || '');
-    toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
-          m === '429' ? 'Rate limited \u2014 try again shortly' : 'Packing failed \u2014 try again');
+    const msg = apiError(err);
+    $('#packOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
+    toast(msg);
   } finally { busy(false); }
 }
 $('#packGo').onclick = packTrip;
@@ -2153,7 +2201,7 @@ async function findGaps(){
     const prompt = `You are a sharp personal stylist reviewing a client's wardrobe for gaps.
 
 THEIR WARDROBE (${S.items.length} pieces \u2014 ${counts}):
-${S.items.map(describe).join('\\n')}
+${S.items.map(describe).join(NL)}
 
 ${tone && tone.confidence > 0.4 ? `Their skin has a ${tone.undertone.toLowerCase()} undertone, ${tone.depth.toLowerCase()} depth.` : ''}
 They live in Los Angeles \u2014 mild most of the year, cool evenings, real heat in late summer.
@@ -2174,9 +2222,9 @@ Reply with ONLY this JSON, no prose or fences:
 
 Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a jacket'.`;
     let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1200); }
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 2000); }
     catch(e){
-      if (['400','404'].indexOf(String(e.message)) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1200);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 2000);
       else throw e;
     }
     const res = parseJSON(text);
@@ -2193,9 +2241,9 @@ Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a
       </div>`).join('') +
       (res.overweight ? `<p class="mini" style="margin:14px 2px 0"><b>Heads up:</b> ${esc(res.overweight)}</p>` : '');
   } catch(err){
-    const m = String(err.message || '');
-    toast(m === '401' ? 'API key rejected \u2014 check it in Me' :
-          m === '429' ? 'Rate limited \u2014 try again shortly' : 'Couldn\u2019t reach the stylist');
+    const msg = apiError(err);
+    $('#gapsOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
+    toast(msg);
   } finally { busy(false); }
 }
 $('#gapsGo').onclick = findGaps;
