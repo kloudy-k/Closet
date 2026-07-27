@@ -747,6 +747,8 @@ const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.label]));
 const OCCASIONS = [
   {id:'home',    name:'Chill at home', formal:[1,2],  shoes:false, outer:'maybe', acc:'no',    warmShift:0,
    line:'Nothing to prove. Softest thing that still counts as an outfit.'},
+  {id:'workout', name:'Workout',       formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1,
+   line:'You warm up fast \u2014 dress for ten minutes in, not the walk over.'},
   {id:'work',    name:'Work',          formal:[3,4],  shoes:true,  outer:'often', acc:'maybe', warmShift:1,
    line:'Offices run cold even when it is 80 outside — a layer earns its place.'},
   {id:'coffee',  name:'Coffee run',    formal:[2,3],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
@@ -989,7 +991,7 @@ function buildOutfit(occ, tone, avoidKey){
   for (let trial = 0; trial < 420; trial++){
     const set = [pick(tops), pick(bottoms)];
     if (occ.shoes && shoes.length) set.push(pick(shoes));
-    if (occ.shoes && socks.length && occ.id !== 'beach' && Math.random() < 0.8) set.push(pick(socks));
+    if (occ.shoes && socks.length && occ.id !== 'beach' && Math.random() < (occ.id === 'workout' ? 0.95 : 0.8)) set.push(pick(socks));
     const layers = hoodies.concat(zips);
     if (occ.outer !== 'no' && layers.length){
       const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
@@ -1732,7 +1734,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.9';
+const BUILD = 'v3.0';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
