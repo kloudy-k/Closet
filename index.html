@@ -1619,7 +1619,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.6';
+const BUILD = 'v2.7';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1704,6 +1704,48 @@ async function callClaude(model, content, maxTokens){
   }
   if (!text){ const e = new Error('Empty response'); e.status = 'empty'; throw e; }
   return text;
+}
+
+/* A reply cut off mid-write is still mostly good. Trim back to the last
+   complete object and close the brackets. */
+function repairJSON(t){
+  let s = String(t).replace(/```json|```/g, '').trim();
+  const start = s.indexOf('{') >= 0 ? s.indexOf('{') : s.indexOf('[');
+  if (start < 0) return null;
+  s = s.slice(start);
+  // walk the string tracking depth, remembering the last point where an
+  // array element closed cleanly
+  let depth = 0, inStr = false, esc = false, lastGood = -1;
+  const stack = [];
+  for (let i = 0; i < s.length; i++){
+    const c = s[i];
+    if (esc){ esc = false; continue; }
+    if (c === '\\'){ esc = true; continue; }
+    if (c === '"'){ inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{' || c === '['){ stack.push(c === '{' ? '}' : ']'); depth++; }
+    else if (c === '}' || c === ']'){ stack.pop(); depth--; if (depth === 1) lastGood = i; }
+  }
+  const candidates = [];
+  if (lastGood > 0) candidates.push(s.slice(0, lastGood + 1));
+  candidates.push(s);
+  for (const base of candidates){
+    let inS = false, es = false; const st = [];
+    for (let i = 0; i < base.length; i++){
+      const c = base[i];
+      if (es){ es = false; continue; }
+      if (c === '\\'){ es = true; continue; }
+      if (c === '"'){ inS = !inS; continue; }
+      if (inS) continue;
+      if (c === '{') st.push('}'); else if (c === '[') st.push(']');
+      else if (c === '}' || c === ']') st.pop();
+    }
+    let fixed = base.replace(/,\s*$/, '');
+    if (inS) fixed += '"';
+    while (st.length) fixed += st.pop();
+    try { return JSON.parse(fixed); } catch(_){}
+  }
+  return null;
 }
 
 /* Models sometimes wrap JSON in a sentence. Pull out the object anyway. */
@@ -1912,14 +1954,15 @@ async function runStylist(){
   let res = null;
   try {
     const prompt = [{ type:'text', text: stylistPrompt(worn, pool, occ, tone) }];
-    let text;
-    try { text = await callClaude(STYLE_MODEL, prompt, 900); }
+    let text, salvaged = null;
+    try { text = await callClaude(STYLE_MODEL, prompt, 1600); }
     catch(e){
       // fall back to the model we know is reachable on this key
-      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, prompt, 900);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, prompt, 1600);
+      else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
       else throw e;
     }
-    res = parseJSON(text);
+    res = salvaged || parseJSON(text);
   } catch(err){
     const msg = apiError(err);
     $('#buildOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
@@ -2005,13 +2048,14 @@ In the blurb be physical and specific: tuck or untuck, full or half, cuff height
 how many buttons, zip position, how much sock shows, where the hem should break, what carries
 the outfit and what should stay quiet. Write it like you're talking to them, not writing a list.
 No flattery, no restating what the items are.`;
-    let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 700); }
+    let text, salvaged = null;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1200); }
     catch(e){
-      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 700);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1200);
+      else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
       else throw e;
     }
-    const res = parseJSON(text);
+    const res = salvaged || parseJSON(text);
     if (!res.blurb) throw new Error('empty');
     out.innerHTML = `<span class="label">How to wear it</span>
       <div class="note">${esc(res.blurb)}</div>` +
@@ -2149,13 +2193,14 @@ Reply with ONLY this JSON, no prose or fences:
 }
 
 Give at least ${Math.min(days, 5)} fits. Keep the pack list tight and justified.`;
-    let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 3000); }
+    let text, salvaged = null;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 4000); }
     catch(e){
-      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 3000);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 4000);
+      else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
       else throw e;
     }
-    const res = parseJSON(text);
+    const res = salvaged || parseJSON(text);
     const byId = id => S.items.find(i => i.id === id);
     const packed = (res.pack || []).map(byId).filter(Boolean);
     if (!packed.length) throw new Error('empty');
@@ -2220,14 +2265,17 @@ Reply with ONLY this JSON, no prose or fences:
   "overweight": "one sentence on what they have too much of, if anything"
 }
 
-Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a jacket'.`;
-    let text;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 2000); }
+Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a jacket'.
+Give exactly 4 gaps. Keep every "why" under 20 words and both closing lines to one sentence each.
+Output nothing but the JSON.`;
+    let text, salvaged = null;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 4000); }
     catch(e){
-      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 2000);
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 4000);
+      else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
       else throw e;
     }
-    const res = parseJSON(text);
+    const res = salvaged || parseJSON(text);
     const gaps = (res.gaps || []).filter(g => g.item);
     if (!gaps.length) throw new Error('empty');
     $('#gapsOut').innerHTML =
