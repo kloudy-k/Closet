@@ -290,6 +290,24 @@ h2{
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
 }
 .toast.on{opacity:1;transform:translateX(-50%);}
+.tgl{
+  width:50px;height:30px;border-radius:999px;background:var(--sunk);
+  border:1px solid var(--line-2);position:relative;flex:0 0 auto;transition:.2s;
+}
+.tgl i{
+  position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:var(--ink-3);transition:.2s;
+}
+.tgl[aria-checked="true"]{background:var(--violet);border-color:var(--violet);}
+.tgl[aria-checked="true"] i{transform:translateX(20px);background:#fff;}
+.buys{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.buy{
+  display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r-s);
+  background:var(--surface-2);border:1px solid var(--line);
+  font-size:13.5px;color:var(--ink);text-decoration:none;
+}
+.buy .host{margin-left:auto;font-size:11px;color:var(--ink-3);flex:0 0 auto;}
+.buy:active{opacity:.7;}
 /* ---- skeleton loaders ---- */
 .sk{
   background:linear-gradient(90deg, var(--surface-2) 8%, var(--line-2) 22%, var(--surface-2) 36%);
@@ -627,6 +645,13 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
     <button class="xbtn" id="closeGaps" aria-label="Close">✕</button>
   </div>
   <p class="mini" style="margin:0 0 14px">The pieces that would unlock the most new outfits from what you already own.</p>
+  <div class="spread" style="margin-bottom:14px">
+    <div style="min-width:0">
+      <div style="font-size:14.5px;font-weight:600">Find things to buy</div>
+      <div class="mini">Searches the web for real products. Costs a few cents per run.</div>
+    </div>
+    <button class="tgl" id="shopTgl" role="switch" aria-checked="false" aria-label="Find things to buy"><i></i></button>
+  </div>
   <button class="btn" id="gapsGo">Find the gaps</button>
   <div id="gapsOut" style="margin-top:16px"></div>
 </div>
@@ -722,6 +747,7 @@ const S = {
   lastOutfit: null,
   picked: [],
   nope: [],
+  shop: false,
   migrated: 0,
   apiKey: '',
   geo: null,
@@ -1542,7 +1568,7 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp,
-      occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay, nope: S.nope });
+      occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay, nope: S.nope, shop: S.shop });
   }, 150);
 }
 /* Older builds had 'outer' and 'onepiece'. Move those pieces somewhere real. */
@@ -1565,7 +1591,7 @@ async function load(){
     S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
     S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
     S.geo = v.geo || null; S.geoName = v.geoName || ''; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
-    S.nope = v.nope || [];
+    S.nope = v.nope || []; S.shop = !!v.shop;
     S.migrated = migrateCats();
   }
   $('#storeNote').textContent = DB.fallback()
@@ -1734,7 +1760,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v3.0';
+const BUILD = 'v3.1';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1788,6 +1814,57 @@ const TAG_MODEL = 'claude-haiku-4-5-20251001';
 const STYLE_MODEL = 'claude-sonnet-5';
 
 const NL = String.fromCharCode(10);
+
+/* Tool-enabled call. Returns the text AND every URL the search actually
+   returned, so we can throw away any link the model invented. */
+async function callClaudeTools(model, content, maxTokens, tools){
+  const messages = [{ role:'user', content }];
+  const urls = new Set();
+  let text = '', rounds = 0;
+
+  while (rounds++ < 3){
+    let r;
+    try {
+      r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'content-type':'application/json',
+          'x-api-key': S.apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({ model, max_tokens: maxTokens, messages, tools })
+      });
+    } catch(net){ const e = new Error('No connection'); e.status = 0; throw e; }
+
+    if (!r.ok){
+      let detail = '';
+      try { const j = await r.json(); detail = (j.error && j.error.message) || ''; } catch(_){}
+      const e = new Error(detail || ('HTTP ' + r.status));
+      e.status = r.status; throw e;
+    }
+    const d = await r.json();
+
+    for (const block of (d.content || [])){
+      if (block.type === 'text') text += block.text;
+      if (block.type === 'web_search_tool_result'){
+        const list = Array.isArray(block.content) ? block.content : [];
+        list.forEach(res => { if (res && res.url) urls.add(res.url); });
+      }
+    }
+    // the model pauses mid-search on long runs; hand its own turn back to it
+    if (d.stop_reason === 'pause_turn' && d.content){
+      messages.push({ role:'assistant', content: d.content });
+      continue;
+    }
+    if (d.stop_reason === 'max_tokens'){
+      const e = new Error('Response cut off'); e.status = 'trunc'; e.partial = text; throw e;
+    }
+    break;
+  }
+  if (!text.trim()){ const e = new Error('Empty response'); e.status = 'empty'; throw e; }
+  return { text: text.trim(), urls };
+}
 
 async function callClaude(model, content, maxTokens){
   let r;
@@ -2361,12 +2438,17 @@ $('#closePack').onclick = closeSheets;
 /* ============================================================
    SHOPPING GAPS
    ============================================================ */
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch(_){ return ''; } };
+const shopLink = q => 'https://www.google.com/search?tbm=shop&q=' + encodeURIComponent(q);
+
 async function findGaps(){
   if (!S.apiKey) return toast('Add an API key in the Me tab first');
   if (S.items.length < 8) return toast('Add a few more pieces first');
   const tone = readTone(S.samples);
+  const shopping = S.shop;
   $('#gapsOut').innerHTML =
-    `<div class="note" style="padding:16px;margin-bottom:14px">${skLines(['92%','66%'])}</div>` + skRows(4);
+    `<div class="note" style="padding:16px;margin-bottom:14px">${skLines(['92%','66%'])}</div>` +
+    skRows(4);
   try {
     const counts = CATS.map(c => `${c.label}: ${S.items.filter(i => i.cat === c.id).length}`).join(', ');
     const prompt = `You are a sharp personal stylist reviewing a client's wardrobe for gaps.
@@ -2377,15 +2459,21 @@ ${S.items.map(describe).join(NL)}
 ${tone && tone.confidence > 0.4 ? `Their skin has a ${tone.undertone.toLowerCase()} undertone, ${tone.depth.toLowerCase()} depth.` : ''}
 They live in Los Angeles \u2014 mild most of the year, cool evenings, real heat in late summer.
 
-Find the 3-5 pieces that would unlock the most NEW outfits from what they already own.
+Find the 4 pieces that would unlock the most NEW outfits from what they already own.
 Not a wishlist. Not trend pieces. The specific missing links.
+${shopping ? `
+Then use web search to find 2-3 REAL products for sale matching each gap.
+Search retailers that actually stock them. Only report products you found in
+search results \u2014 never guess or reconstruct a URL.` : ''}
 
 Reply with ONLY this JSON, no prose or fences:
 {
   "gaps": [{
     "item": "specific piece, e.g. 'mid-wash straight leg denim'",
     "why": "what it unlocks, under 20 words",
-    "unlocks": "how many existing pieces it would newly combine with, a number"
+    "unlocks": "how many existing pieces it would newly combine with, a number",
+    "search": "a short shopping search phrase for this piece"${shopping ? `,
+    "buys": [{"name": "product name and brand", "url": "the exact URL from search results", "price": "e.g. $89"}]` : ''}
   }],
   "strength": "one sentence on what their wardrobe already does well",
   "overweight": "one sentence on what they have too much of, if anything"
@@ -2394,34 +2482,72 @@ Reply with ONLY this JSON, no prose or fences:
 Order gaps by impact. Be specific about cut, color and weight \u2014 not just 'a jacket'.
 Give exactly 4 gaps. Keep every "why" under 20 words and both closing lines to one sentence each.
 Output nothing but the JSON.`;
-    let text, salvaged = null;
-    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 4000); }
-    catch(e){
-      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 4000);
+
+    let text, urls = new Set(), salvaged = null;
+    const msg = [{ type:'text', text: prompt }];
+    try {
+      if (shopping){
+        const r = await callClaudeTools(STYLE_MODEL, msg, 8000,
+          [{ type:'web_search_20250305', name:'web_search', max_uses: 6 }]);
+        text = r.text; urls = r.urls;
+      } else {
+        text = await callClaude(STYLE_MODEL, msg, 4000);
+      }
+    } catch(e){
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, msg, 4000);
       else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
       else throw e;
     }
     const res = salvaged || parseJSON(text);
     const gaps = (res.gaps || []).filter(g => g.item);
     if (!gaps.length) throw new Error('empty');
+
     $('#gapsOut').innerHTML =
       (res.strength ? `<div class="note" style="margin-bottom:14px">${esc(res.strength)}</div>` : '') +
-      gaps.map(g => `<div class="rrow" style="align-items:flex-start">
-        <div class="rmid">
-          <div style="font-size:15px"><b>${esc(g.item)}</b></div>
-          <div class="mini">${esc(g.why || '')}</div>
-        </div>
-        ${g.unlocks ? `<span class="age cold" style="position:static;flex:0 0 auto">+${esc(String(g.unlocks))}</span>` : ''}
-      </div>`).join('') +
+      gaps.map(g => {
+        const q = g.search || g.item;
+        // keep only links the search actually returned
+        const buys = (g.buys || []).filter(b => b && b.url && urls.has(b.url)).slice(0, 3);
+        const dropped = (g.buys || []).length - buys.length;
+        return `<div style="padding:12px 0;border-bottom:1px solid var(--line)">
+          <div class="spread" style="align-items:flex-start;gap:12px">
+            <div style="min-width:0">
+              <div style="font-size:15px"><b>${esc(g.item)}</b></div>
+              <div class="mini">${esc(g.why || '')}</div>
+            </div>
+            ${g.unlocks ? `<span class="age cold" style="position:static;flex:0 0 auto">+${esc(String(g.unlocks))}</span>` : ''}
+          </div>
+          <div class="buys">
+            ${buys.map(b => `<a class="buy" href="${esc(b.url)}" target="_blank" rel="noopener">
+                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.name || 'View')}${b.price ? ' \u00b7 ' + esc(b.price) : ''}</span>
+                <span class="host">${esc(hostOf(b.url))}</span>
+              </a>`).join('')}
+            <a class="buy" href="${esc(shopLink(q))}" target="_blank" rel="noopener">
+              <span>${buys.length ? 'More options' : 'Shop for this'}</span>
+              <span class="host">search</span>
+            </a>
+          </div>
+          ${dropped > 0 ? `<p class="mini" style="margin:6px 0 0;opacity:.7">${dropped} unverified link${dropped === 1 ? '' : 's'} hidden</p>` : ''}
+        </div>`;
+      }).join('') +
       (res.overweight ? `<p class="mini" style="margin:14px 2px 0"><b>Heads up:</b> ${esc(res.overweight)}</p>` : '');
   } catch(err){
-    const msg = apiError(err);
-    $('#gapsOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
-    toast(msg);
+    const msg2 = apiError(err);
+    $('#gapsOut').innerHTML = `<div class="note">${esc(msg2)}</div>`;
+    toast(msg2);
   }
 }
+$('#shopTgl').onclick = () => {
+  S.shop = !S.shop;
+  $('#shopTgl').setAttribute('aria-checked', String(S.shop));
+  save();
+};
 $('#gapsGo').onclick = findGaps;
-$('#gapsOpen').onclick = () => { $('#gapsOut').innerHTML = ''; openSheet('#sheet-gaps'); };
+$('#gapsOpen').onclick = () => {
+  $('#gapsOut').innerHTML = '';
+  $('#shopTgl').setAttribute('aria-checked', String(S.shop));
+  openSheet('#sheet-gaps');
+};
 $('#closeGaps').onclick = closeSheets;
 
 /* ---- let the stylist build the whole fit, not just fill gaps ---- */
