@@ -471,6 +471,13 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
       <p class="mini" id="keyNote" style="margin:0"></p>
     </div>
 
+    <div class="card stack" style="gap:12px" id="nopeCard">
+      <h2>Rejected pairs</h2>
+      <p class="mini" style="margin:0">Every time you tap "Not this", the two pieces that clashed get remembered.</p>
+      <div id="nopeList"></div>
+      <button class="btn ghost sm" id="clearNope" style="width:100%">Forget them all</button>
+    </div>
+
     <div class="card stack" style="gap:12px">
       <h2>Backup</h2>
       <p class="mini" style="margin:0">Your closet lives only on this phone. Export a copy before you clear Safari data or switch phones.</p>
@@ -714,6 +721,7 @@ const S = {
   occasion: 'coffee',
   lastOutfit: null,
   picked: [],
+  nope: [],
   migrated: 0,
   apiKey: '',
   geo: null,
@@ -794,27 +802,71 @@ const hex = c => Array.isArray(c)
   ? '#' + c.slice(0,3).map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('')
   : '#888888';
 
-/* Is this piece effectively a neutral? Neutrals go with everything. */
+/* Is this piece effectively a neutral? Neutrals go with everything.
+   Judged on raw chroma, because HSL saturation balloons near white and
+   black — cream would read as 35% saturated and get treated as a color. */
 function isNeutral(rgb){
-  const { s, l } = rgbToHsl(...rgb);
-  return s < 0.16 || l < 0.13 || l > 0.90;
+  const mx = Math.max(rgb[0], rgb[1], rgb[2]), mn = Math.min(rgb[0], rgb[1], rgb[2]);
+  const chroma = (mx - mn) / 255;
+  const l = (mx + mn) / 510;
+  if (chroma < 0.11) return true;                    // greys, creams, blacks, whites
+  if ((l < 0.18 || l > 0.82) && chroma < 0.24) return true;  // near-black / near-white with a tint
+  return false;
 }
 
-/* Two colors sitting next to each other: does it work? 0–1 */
+/* Two colors sitting next to each other: does it work? 0–1
+   The dangerous case is NOT opposites — it's near-misses. Two reds that
+   aren't the same red read as a mistake, where red-and-green reads as a
+   choice. The curve below dips hardest just off exact-match. */
 function harmony(a, b){
-  if (isNeutral(a) || isNeutral(b)) return 0.88;
+  const aN = isNeutral(a), bN = isNeutral(b);
+  if (aN && bN) return 0.92;
+  if (aN || bN) return 0.88;          // one neutral anchors anything
+
   const A = rgbToHsl(...a), B = rgbToHsl(...b);
   let d = Math.abs(A.h - B.h); if (d > 180) d = 360 - d;
+  const quiet = Math.min(A.s, B.s);   // how loud is the quieter one
+  const loud  = Math.max(A.s, B.s);
+  const dl    = Math.abs(A.l - B.l);  // lightness separation
+
   let base;
-  if (d < 22) base = 0.94;          // tonal
-  else if (d < 52) base = 0.82;     // analogous
-  else if (d < 118) base = 0.36;    // the awkward zone
-  else if (d < 148) base = 0.58;
-  else base = 0.86;                 // opposites, on purpose
-  // two loud saturated pieces fighting each other
-  const loud = Math.min(A.s, B.s);
-  if (loud > 0.62 && d > 30) base -= 0.14;
+  if (d < 8){
+    // genuinely the same hue: monochrome, and it needs tonal contrast
+    base = dl > 0.18 ? 0.93 : 0.66;
+  } else if (d < 32){
+    // THE CLASH ZONE — pink next to red, navy next to royal.
+    // the more saturated both are, the worse it reads
+    base = 0.26 - quiet * 0.18;
+    if (dl > 0.30) base += 0.20;      // a big lightness gap rescues it a little
+  } else if (d < 62){
+    base = 0.60;                      // analogous, workable
+  } else if (d < 120){
+    base = 0.34;                      // awkward
+  } else if (d < 150){
+    base = 0.54;
+  } else {
+    base = 0.82;                      // opposites, clearly deliberate
+  }
+  // two loud pieces fight each other no matter the angle
+  if (quiet > 0.5 && loud > 0.55 && d >= 8) base -= 0.20;
   return Math.max(0, Math.min(1, base));
+}
+
+/* A statement piece — pattern, graphic, or just loud. Only one per outfit. */
+function isBold(i){
+  if (i.bold != null) return !!i.bold;
+  const { s, l } = rgbToHsl(...i.rgb);
+  return s > 0.52 && l > 0.22 && l < 0.78;
+}
+
+/* Pairs the person has rejected. Cheap, and it captures taste the math can't. */
+const pairKey = (a, b) => [a, b].sort().join('|');
+function nopedPairs(set){
+  let n = 0;
+  for (let i = 0; i < set.length; i++)
+    for (let j = i + 1; j < set.length; j++)
+      if (S.nope.indexOf(pairKey(set[i].id, set[j].id)) >= 0) n++;
+  return n;
 }
 
 /* Dominant color of a garment photo — weighted to the center so
@@ -951,10 +1003,19 @@ function buildOutfit(occ, tone, avoidKey){
 
     const key = set.map(i => i.id).sort().join('|');
     let sc = set.reduce((a, i) => a + scoreItem(i, occ, tone), 0) / set.length;
-    let pairs = 0, hsum = 0;
+    // worst pair matters more than the average — one clash ruins the fit
+    let pairs = 0, hsum = 0, worst = 1;
     for (let a = 0; a < set.length; a++)
-      for (let b = a+1; b < set.length; b++){ hsum += harmony(set[a].rgb, set[b].rgb); pairs++; }
-    if (pairs) sc += (hsum / pairs) * 1.9;
+      for (let b = a+1; b < set.length; b++){
+        const h = harmony(set[a].rgb, set[b].rgb);
+        hsum += h; pairs++; if (h < worst) worst = h;
+      }
+    if (pairs) sc += (hsum / pairs) * 1.2 + worst * 1.6;
+    // one statement piece, not three
+    const bolds = set.filter(isBold).length;
+    if (bolds > 1) sc -= (bolds - 1) * 1.5;
+    // anything they've told us not to pair
+    sc -= nopedPairs(set) * 3.5;
     sc += Math.random() * 0.22;                 // keeps re-rolls interesting
     if (key === avoidKey) sc -= 1.6;
     if (sc > bestScore){ bestScore = sc; best = set; }
@@ -984,7 +1045,9 @@ function suggestFor(cat, worn, occ, tone){
 function explain(set, occ, tone){
   const bits = [];
   const loud = set.filter(i => !isNeutral(i.rgb));
-  if (loud.length === 0) bits.push('All neutrals, so nothing competes');
+  const bolds = set.filter(isBold);
+  if (bolds.length === 1) bits.push(`<b>${esc(bolds[0].name)}</b> is the statement, everything else stays quiet`);
+  else if (loud.length === 0) bits.push('All neutrals, so nothing competes');
   else if (loud.length === 1) bits.push(`<b>${esc(loud[0].name)}</b> is the one piece carrying color`);
   else {
     let d = Math.abs(rgbToHsl(...loud[0].rgb).h - rgbToHsl(...loud[1].rgb).h);
@@ -1141,10 +1204,32 @@ function renderToday(){
       <button class="btn soft" id="reroll">Try another</button>
       <button class="btn" id="wearIt">Wearing this</button>
     </div>
-    <button class="btn ghost" id="howBtn" style="margin-top:10px">How do I wear this?</button>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" id="nopeBtn" style="width:100%">Not this</button>
+      <button class="btn ghost sm" id="howBtn" style="width:100%">How to wear it</button>
+    </div>
+    <button class="btn ghost sm" id="aiFit" style="width:100%;margin-top:10px">Ask the stylist instead</button>
     <div id="howOut" style="margin-top:18px"></div>`;
   $('#reroll').onclick = renderToday;
   $('#howBtn').onclick = () => howToWear(set);
+  $('#aiFit').onclick = () => stylistPicksFit();
+  $('#nopeBtn').onclick = () => {
+    // blame the worst-matching pair in the fit and remember it
+    let worst = null, ws = 2;
+    for (let a = 0; a < set.length; a++)
+      for (let b = a + 1; b < set.length; b++){
+        const h = harmony(set[a].rgb, set[b].rgb);
+        const penalty = (isBold(set[a]) && isBold(set[b])) ? -0.4 : 0;
+        if (h + penalty < ws){ ws = h + penalty; worst = [set[a], set[b]]; }
+      }
+    if (worst){
+      const k = pairKey(worst[0].id, worst[1].id);
+      if (S.nope.indexOf(k) < 0) S.nope.push(k);
+      save();
+      toast(`Won't pair ${worst[0].name} with ${worst[1].name} again`);
+    }
+    renderToday();
+  };
   $('#wearIt').onclick = () => {
     logWear(set);
     toast('Logged — it will rest for a few days');
@@ -1455,7 +1540,7 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     DB.set('state', { items: S.items, samples: S.samples, looks: S.looks, temp: S.temp,
-      occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay });
+      occasion: S.occasion, geo: S.geo, geoName: S.geoName, wx: S.wx, tempDay: S.tempDay, nope: S.nope });
   }, 150);
 }
 /* Older builds had 'outer' and 'onepiece'. Move those pieces somewhere real. */
@@ -1478,6 +1563,7 @@ async function load(){
     S.items = v.items || []; S.samples = v.samples || []; S.looks = v.looks || [];
     S.temp = v.temp || 2; S.occasion = v.occasion || 'coffee';
     S.geo = v.geo || null; S.geoName = v.geoName || ''; S.wx = v.wx || null; S.tempDay = v.tempDay || '';
+    S.nope = v.nope || [];
     S.migrated = migrateCats();
   }
   $('#storeNote').textContent = DB.fallback()
@@ -1496,7 +1582,7 @@ function go(name){
   if (name === 'today') renderToday();
   if (name === 'closet') renderCloset();
   if (name === 'build'){ renderBuild(); runBuild(); }
-  if (name === 'me'){ renderTone(); renderSaved(); }
+  if (name === 'me'){ renderTone(); renderSaved(); renderNope(); }
 }
 window.go = go;
 
@@ -1646,7 +1732,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.8';
+const BUILD = 'v2.9';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1813,6 +1899,8 @@ Reply with ONLY a JSON array. No prose, no markdown fences. Each element:
         - "zipup"  = jackets, anything with a full-length zip
         - a dress, jumpsuit or romper should be tagged "top"
   "len": socks only, one of "noshow", "ankle", "crew", "knee",
+  "bold": true if it's a statement piece — patterned, graphic-printed, logo-heavy
+          or a loud saturated color. false for plain solids and neutrals.
   "formal": 1-5 where 1=loungewear, 2=casual, 3=smart casual, 4=sharp, 5=formal,
   "warm": 1-5 where 1=tank/shorts, 3=mid weight, 5=heavy coat,
   "box": [x0, y0, x1, y1] bounding box, each value 0-1 relative to image size
@@ -1885,6 +1973,7 @@ function openReview(img, tags){
       cat: CATNAME[t.cat] ? t.cat : 'top',
       formal: clamp15(t.formal), warm: clamp15(t.warm),
       len: LENNAME[t.len] ? t.len : null,
+      bold: t.bold === true,
       rgb: dominantColor(c), img: c.toDataURL('image/jpeg', 0.78), on: true
     });
   }
@@ -1913,7 +2002,7 @@ $('#addAll').onclick = () => {
   keep.forEach(r => S.items.push({
     id: uid(), name: (r.name || '').trim() || CATNAME[r.cat],
     cat: r.cat, formal: r.formal, warm: r.warm, len: r.cat === 'socks' ? (r.len || 'crew') : null,
-    rgb: r.rgb, img: r.img, lastWorn: 0
+    bold: !!r.bold, rgb: r.rgb, img: r.img, lastWorn: 0
   }));
   reviewItems = [];
   save(); closeSheets(); renderCloset();
@@ -1966,6 +2055,8 @@ Rules:
 - Three additions maximum. Suggest a swap only when it clearly lifts the outfit.
 - Be specific about proportion, texture, color relationships and where the eye lands. No filler, no flattery.
 - Socks count. Call out length and color when they help or hurt, especially with cropped or wide legs.
+- Near-miss colors clash worse than opposites. Two different reds reads as a mistake; red with a neutral does not.
+- One statement piece only. If something is patterned or loud, everything else stays quiet.
 - At most 3 tips, each under 12 words, physical and doable: tuck, cuff, sleeve roll, layering order, what to leave undone.`;
 }
 
@@ -2331,7 +2422,105 @@ $('#gapsGo').onclick = findGaps;
 $('#gapsOpen').onclick = () => { $('#gapsOut').innerHTML = ''; openSheet('#sheet-gaps'); };
 $('#closeGaps').onclick = closeSheets;
 
+/* ---- let the stylist build the whole fit, not just fill gaps ---- */
+async function stylistPicksFit(){
+  if (!S.apiKey) return toast('Add an API key in the Me tab first');
+  const out = $('#todayOut');
+  const occ = OCC[S.occasion], tone = readTone(S.samples);
+  out.innerHTML = skLabel('Stylist') +
+    `<div class="lay">${skGrid(2)}</div>` +
+    `<div class="note" style="padding:16px;margin-top:14px">${skLines(['100%','88%'])}</div>`;
+  try {
+    const banned = S.nope.map(k => k.split('|'))
+      .map(p => { const a = S.items.find(i => i.id === p[0]), b = S.items.find(i => i.id === p[1]);
+                  return a && b ? `${a.name} + ${b.name}` : null; })
+      .filter(Boolean);
+    const prompt = `You are a sharp personal stylist. Build ONE outfit from your client's actual wardrobe.
+
+OCCASION: ${occ.name}. ${occ.line}
+WEATHER: ${TEMP_NAME[S.temp]}.
+${tone && tone.confidence > 0.4 ? `SKIN: ${tone.undertone.toLowerCase()} undertone, ${tone.depth.toLowerCase()} depth. ${PALETTES[tone.undertone].line}` : ''}
+
+THEIR WARDROBE:
+${S.items.map(describe).join(NL)}
+
+${banned.length ? 'They have explicitly rejected these combinations, do not repeat them:' + NL + banned.join(NL) : ''}
+
+Only use ids from that list. Never invent an item.
+
+Reply with ONLY this JSON, no prose or fences:
+{
+  "ids": ["id", ...],
+  "why": "2-3 sentences on why this works \u2014 proportion, color, texture, where the eye lands"
+}
+
+Rules:
+- A top, a bottom, and shoes unless they're at home. Socks if they're wearing shoes.
+- ONE layer at most: a hoodie or a zip-up, never both.
+- ONE statement piece. If something is patterned or loud, everything else stays quiet.
+- Near-miss colors clash worse than opposites. Two different reds is a mistake; red with a neutral is not.
+- Dress for the weather above all.`;
+    let text, salvaged = null;
+    try { text = await callClaude(STYLE_MODEL, [{ type:'text', text: prompt }], 1600); }
+    catch(e){
+      if ([400, 404, 529, 503].indexOf(e.status) >= 0) text = await callClaude(TAG_MODEL, [{ type:'text', text: prompt }], 1600);
+      else if (e.status === 'trunc'){ salvaged = repairJSON(e.partial); if (!salvaged) throw e; }
+      else throw e;
+    }
+    const res = salvaged || parseJSON(text);
+    const set = (res.ids || []).map(id => S.items.find(i => i.id === id)).filter(Boolean);
+    if (set.length < 2) throw new Error('empty');
+    S.lastOutfit = set;
+    out.innerHTML = `
+      <div class="lay">
+        ${layHTML(set)}
+        <div class="why">${esc(res.why || '')}</div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn soft" id="reroll">Local pick</button>
+        <button class="btn" id="wearIt">Wearing this</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost sm" id="howBtn" style="width:100%">How to wear it</button>
+        <button class="btn ghost sm" id="aiFit" style="width:100%">Ask again</button>
+      </div>`;
+    $('#reroll').onclick = renderToday;
+    $('#wearIt').onclick = () => { logWear(set); toast('Logged'); };
+    $('#howBtn').onclick = () => howToWear(set);
+    $('#aiFit').onclick = () => stylistPicksFit();
+  } catch(err){
+    const msg = apiError(err);
+    out.innerHTML = `<div class="note">${esc(msg)}</div>`;
+    toast(msg);
+  }
+}
+
 /* ---- api key, kept on the phone and out of backups ---- */
+function renderNope(){
+  const card = $('#nopeCard');
+  if (!S.nope.length){ card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  $('#nopeList').innerHTML = S.nope.map(k => {
+    const p = k.split('|');
+    const a = S.items.find(i => i.id === p[0]), b = S.items.find(i => i.id === p[1]);
+    if (!a || !b) return '';
+    return `<div class="rrow">
+      <img src="${a.img}" alt="">
+      <div class="rmid"><div class="mini">${esc(a.name)} <b>+</b> ${esc(b.name)}</div></div>
+      <img src="${b.img}" alt="">
+      <button class="xbtn" data-k="${esc(k)}" aria-label="Allow again">↺</button>
+    </div>`;
+  }).join('');
+}
+$('#nopeList').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  S.nope = S.nope.filter(k => k !== b.dataset.k);
+  save(); renderNope(); toast('Allowed again');
+});
+$('#clearNope').onclick = () => {
+  S.nope = []; save(); renderNope(); toast('Forgotten');
+};
+
 function renderKeyNote(){
   $('#keyNote').textContent = S.apiKey
     ? 'Key saved on this phone. Photos are sent to Anthropic for tagging.'
@@ -2403,7 +2592,7 @@ function applyInsets(){
   applyInsets();
   await load();
   renderOccasions();
-  renderCloset(); renderTone(); renderSaved(); renderKeyNote();
+  renderCloset(); renderTone(); renderSaved(); renderKeyNote(); renderNope();
   applyWeather();
   renderToday();
   $('#buildLine').textContent = BUILD;
