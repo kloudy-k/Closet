@@ -14,7 +14,7 @@
 <title>Marine Layer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
 <style>
 :root{
   --sat:0px; --sab:6px;
@@ -26,8 +26,8 @@
   --warn:#A6592B;
   --shadow:0 1px 2px rgba(20,22,30,.06), 0 8px 24px -12px rgba(20,22,30,.18);
   --r-s:10px; --r-m:16px; --r-l:22px;
-  --display:'Familjen Grotesk', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --body:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --display:'Montserrat', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --body:'Montserrat', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -44,7 +44,8 @@
 html,body{margin:0;padding:0;height:100%;}
 body{
   background:var(--bg); color:var(--ink);
-  font-family:var(--body); font-size:16px; line-height:1.45;
+  font-family:var(--body); font-size:15.5px; line-height:1.5;
+  letter-spacing:-.002em;
   -webkit-font-smoothing:antialiased;
   overscroll-behavior-y:none;
 }
@@ -68,16 +69,16 @@ img{display:block;}
 /* ---------- header ---------- */
 .head{padding:18px 18px 10px; max-width:620px; margin:0 auto;}
 .eyebrow{
-  font-family:var(--display); font-size:11px; font-weight:600;
-  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+  font-family:var(--display); font-size:10px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
 }
 h1{
-  font-family:var(--display); font-weight:700; font-size:34px;
-  letter-spacing:-.025em; line-height:1.02; margin:4px 0 0;
+  font-family:var(--display); font-weight:800; font-size:31px;
+  letter-spacing:-.032em; line-height:1.08; margin:5px 0 0;
 }
 h2{
-  font-family:var(--display); font-weight:600; font-size:19px;
-  letter-spacing:-.015em; margin:0;
+  font-family:var(--display); font-weight:700; font-size:17.5px;
+  letter-spacing:-.022em; margin:0;
 }
 .sub{color:var(--ink-2); font-size:14.5px; margin:6px 0 0;}
 
@@ -99,8 +100,8 @@ h2{
   position:relative;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   height:52px; padding:0; color:var(--ink-3);
-  font-family:var(--display); font-size:10.5px; font-weight:600;
-  letter-spacing:.09em; text-transform:uppercase;
+  font-family:var(--display); font-size:9.5px; font-weight:600;
+  letter-spacing:.07em; text-transform:uppercase;
   transition:color .18s;
 }
 #tabs button svg{width:22px;height:22px;stroke-width:1.6;flex:0 0 auto;}
@@ -121,7 +122,7 @@ h2{
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
   background:var(--ink); color:var(--bg);
-  font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.01em;
+  font-family:var(--display); font-weight:600; font-size:14.5px; letter-spacing:-.005em;
   padding:14px 20px; border-radius:999px; width:100%;
   transition:transform .12s, opacity .12s;
 }
@@ -134,8 +135,8 @@ h2{
 .row>*{flex:1;}
 
 .label{
-  font-family:var(--display); font-size:11px; font-weight:600;
-  letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3);
+  font-family:var(--display); font-size:10px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
   display:block; margin:0 0 8px;
 }
 .field{
@@ -146,7 +147,7 @@ h2{
 
 .seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;}
 .seg button{
-  flex:1; padding:9px 4px; border-radius:999px; font-size:13.5px;
+  flex:1; padding:9px 3px; border-radius:999px; font-size:12.5px;
   font-family:var(--display); font-weight:600; color:var(--ink-2);
   transition:.16s; min-width:0;
 }
@@ -157,7 +158,7 @@ h2{
 .chip{
   flex:0 0 auto; padding:9px 15px; border-radius:999px;
   border:1px solid var(--line-2); background:var(--surface);
-  font-family:var(--display); font-weight:500; font-size:14.5px; white-space:nowrap;
+  font-family:var(--display); font-weight:500; font-size:13.5px; white-space:nowrap;
   transition:.16s;
 }
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);}
@@ -196,8 +197,8 @@ h2{
 .piece img{width:100%;height:100%;object-fit:cover;}
 .piece .slot{
   position:absolute; top:8px; left:8px; z-index:2;
-  font-family:var(--display); font-size:9.5px; font-weight:600;
-  letter-spacing:.14em; text-transform:uppercase;
+  font-family:var(--display); font-size:8.5px; font-weight:700;
+  letter-spacing:.13em; text-transform:uppercase;
   background:color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   color:var(--ink); padding:4px 8px; border-radius:999px;
@@ -289,6 +290,19 @@ h2{
   opacity:0;pointer-events:none;transition:.24s;white-space:nowrap;max-width:90vw;
 }
 .toast.on{opacity:1;transform:translateX(-50%);}
+/* ---- skeleton loaders ---- */
+.sk{
+  background:linear-gradient(90deg, var(--surface-2) 8%, var(--line-2) 22%, var(--surface-2) 36%);
+  background-size:300% 100%;
+  animation:shim 1.5s linear infinite;
+  border-radius:8px;
+}
+@keyframes shim{0%{background-position:120% 0}100%{background-position:-20% 0}}
+.sk-line{height:12px;margin-bottom:9px;}
+.sk-line:last-child{margin-bottom:0;}
+.sk-tile{aspect-ratio:1/1;border-radius:var(--r-m);}
+.sk-thumb{width:58px;height:58px;border-radius:12px;flex:0 0 auto;}
+.sk-note{height:64px;border-radius:var(--r-m);}
 .age{
   position:absolute; top:7px; left:7px; z-index:2;
   font-family:var(--display); font-size:9px; font-weight:600; letter-spacing:.08em;
@@ -1048,6 +1062,16 @@ async function refreshWeather(ask){
 /* ============================================================
    RENDER
    ============================================================ */
+/* Skeletons stand in exactly where the result will land, so the page
+   doesn't jump when it arrives. */
+const skLines = (widths) => widths.map(w => `<div class="sk sk-line" style="width:${w}"></div>`).join('');
+const skGrid = n => `<div class="grid">${Array.from({length:n}, () => '<div class="sk sk-tile"></div>').join('')}</div>`;
+const skRows = n => Array.from({length:n}, () => `<div class="rrow">
+    <div class="sk sk-thumb"></div>
+    <div class="rmid">${skLines(['62%','88%'])}</div>
+  </div>`).join('');
+const skLabel = t => `<span class="label">${t}</span>`;
+
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1540,12 +1564,15 @@ $('#fileIn').addEventListener('change', async e => {
 
   if (!S.apiKey) return finishSingle(img, null);
 
-  busy(true, 'Reading the photo…');
+  const grid = $('#closetGrid');
+  const ghost = document.createElement('div');
+  ghost.className = 'sk sk-tile';
+  if (grid && grid.firstChild) grid.insertBefore(ghost, grid.firstChild.nextSibling);
   let tags = null;
   try {
     tags = await tagPhoto(shrink(img, 1024, 0.8));
   } catch(err){ toast(apiError(err)); }
-  busy(false);
+  ghost.remove();
 
   if (tags && tags.length > 1) openReview(img, tags);
   else finishSingle(img, tags && tags[0]);
@@ -1619,7 +1646,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v2.7';
+const BUILD = 'v2.8';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1950,7 +1977,10 @@ async function runStylist(){
   if (!pool.length) return toast('Nothing left in the closet to suggest');
 
   const occ = OCC[S.occasion], tone = readTone(S.samples);
-  busy(true, 'Styling…');
+  $('#buildOut').innerHTML = skLabel('Stylist') +
+    `<div class="note" style="padding:16px;margin-bottom:14px">${skLines(['100%','92%','70%'])}</div>` +
+    `<div class="lay">${skGrid(2)}</div>`;
+  $('#buildOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
   let res = null;
   try {
     const prompt = [{ type:'text', text: stylistPrompt(worn, pool, occ, tone) }];
@@ -1968,7 +1998,6 @@ async function runStylist(){
     $('#buildOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
     toast(msg);
   }
-  busy(false);
   if (res) renderStyle(res, worn);
 }
 
@@ -2028,7 +2057,9 @@ async function howToWear(set){
     return;
   }
 
-  busy(true, 'Working out how to wear it\u2026');
+  out.innerHTML = skLabel('How to wear it') +
+    `<div class="note" style="padding:16px">${skLines(['100%','96%','78%'])}</div>`;
+  out.scrollIntoView({ behavior:'smooth', block:'nearest' });
   try {
     const prompt = `You are a sharp personal stylist. Your client owns these pieces and is wearing them together for: ${occ.name}. ${occ.line}
 Weather: ${TEMP_NAME[S.temp]}.
@@ -2065,7 +2096,6 @@ No flattery, no restating what the items are.`;
     out.innerHTML = `<div class="note">${esc(msg)}</div>`;
     toast(msg);
   } finally {
-    busy(false);
     out.scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
 }
@@ -2167,9 +2197,11 @@ async function packTrip(){
   if (!packOccs.size) return toast('Pick at least one activity');
   const days = +segStr('#packDays', '5');
 
-  busy(true, 'Checking the forecast\u2026');
+  $('#packOut').innerHTML = skLabel('Checking the forecast') + skGrid(6);
+  $('#packOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
   const wx = await tripWeather(days);
-  busy(true, 'Packing\u2026');
+  $('#packOut').innerHTML = skLabel('Packing your bag') + skGrid(6) +
+    `<div class="note" style="padding:16px;margin-top:14px">${skLines(['100%','84%'])}</div>`;
   try {
     const prompt = `You are a sharp personal stylist packing a suitcase from your client's actual wardrobe.
 
@@ -2222,7 +2254,7 @@ Give at least ${Math.min(days, 5)} fits. Keep the pack list tight and justified.
     const msg = apiError(err);
     $('#packOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
     toast(msg);
-  } finally { busy(false); }
+  }
 }
 $('#packGo').onclick = packTrip;
 $('#packOpen').onclick = () => {
@@ -2240,7 +2272,8 @@ async function findGaps(){
   if (!S.apiKey) return toast('Add an API key in the Me tab first');
   if (S.items.length < 8) return toast('Add a few more pieces first');
   const tone = readTone(S.samples);
-  busy(true, 'Looking for gaps\u2026');
+  $('#gapsOut').innerHTML =
+    `<div class="note" style="padding:16px;margin-bottom:14px">${skLines(['92%','66%'])}</div>` + skRows(4);
   try {
     const counts = CATS.map(c => `${c.label}: ${S.items.filter(i => i.cat === c.id).length}`).join(', ');
     const prompt = `You are a sharp personal stylist reviewing a client's wardrobe for gaps.
@@ -2292,7 +2325,7 @@ Output nothing but the JSON.`;
     const msg = apiError(err);
     $('#gapsOut').innerHTML = `<div class="note">${esc(msg)}</div>`;
     toast(msg);
-  } finally { busy(false); }
+  }
 }
 $('#gapsGo').onclick = findGaps;
 $('#gapsOpen').onclick = () => { $('#gapsOut').innerHTML = ''; openSheet('#sheet-gaps'); };
