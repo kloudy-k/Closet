@@ -172,9 +172,7 @@ h2{
 /* ---------- the flat lay (signature) ---------- */
 .lay{
   position:relative;
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 0/100% 34px,
-    var(--surface);
+  background:var(--surface);
   border:1px solid var(--line); border-radius:var(--r-l);
   padding:18px; overflow:hidden;
 }
@@ -577,6 +575,20 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
         <button data-v="crew" aria-pressed="true">Crew</button><button data-v="knee">Knee</button>
       </div>
     </div>
+    <div class="spread">
+      <div style="min-width:0">
+        <div style="font-size:14.5px;font-weight:600">Activewear</div>
+        <div class="mini">Used for workouts</div>
+      </div>
+      <button class="tgl" id="itemAth" role="switch" aria-checked="false" aria-label="Activewear"><i></i></button>
+    </div>
+    <div class="spread">
+      <div style="min-width:0">
+        <div style="font-size:14.5px;font-weight:600">Statement piece</div>
+        <div class="mini">Patterned, graphic or loud</div>
+      </div>
+      <button class="tgl" id="itemBold" role="switch" aria-checked="false" aria-label="Statement piece"><i></i></button>
+    </div>
     <div>
       <span class="label">Warmth</span>
       <div class="seg" id="itemWarm">
@@ -601,6 +613,20 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
   <div class="stickbar">
     <span class="mini" id="pickCount"></span>
     <button class="btn sm" id="pickDone">Done</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-nope">
+  <div class="grab"></div>
+  <div class="spread" style="margin-bottom:6px">
+    <h2 style="min-width:0">What doesn't work?</h2>
+    <button class="xbtn" id="closeNopeSheet" aria-label="Close">✕</button>
+  </div>
+  <p class="mini" style="margin:0 0 12px">Tap the pieces that shouldn't go together. Pick two or more.</p>
+  <div class="grid" id="nopeGrid"></div>
+  <div class="stickbar">
+    <span class="mini" id="nopeCount"></span>
+    <button class="btn sm" id="nopeSave">Never together</button>
   </div>
 </div>
 
@@ -773,7 +799,7 @@ const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.label]));
 const OCCASIONS = [
   {id:'home',    name:'Chill at home', formal:[1,2],  shoes:false, outer:'maybe', acc:'no',    warmShift:0,
    line:'Nothing to prove. Softest thing that still counts as an outfit.'},
-  {id:'workout', name:'Workout',       formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1,
+  {id:'workout', name:'Workout',       formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1, athletic:true,
    line:'You warm up fast \u2014 dress for ten minutes in, not the walk over.'},
   {id:'work',    name:'Work',          formal:[3,4],  shoes:true,  outer:'often', acc:'maybe', warmShift:1,
    line:'Offices run cold even when it is 80 outside — a layer earns its place.'},
@@ -880,11 +906,24 @@ function harmony(a, b){
   return Math.max(0, Math.min(1, base));
 }
 
-/* A statement piece — pattern, graphic, or just loud. Only one per outfit. */
+/* A statement piece — pattern, graphic, or just loud. Only one per outfit.
+   Falls back to the name when nothing has tagged it, since a black graphic
+   tee is a statement even though black reads as neutral. */
+const BOLD_WORDS = /graphic|print|pattern|logo|floral|stripe|plaid|check|camo|tie.?dye|neon|hawaiian|flamingo/i;
 function isBold(i){
   if (i.bold != null) return !!i.bold;
+  if (BOLD_WORDS.test(i.name || '')) return true;
   const { s, l } = rgbToHsl(...i.rgb);
   return s > 0.52 && l > 0.22 && l < 0.78;
+}
+
+/* Activewear. Same idea — explicit flag first, then the name. */
+/* Deliberately excludes 'sneaker' and lifestyle brands — Air Force 1s are not
+   gym shoes. Only words that actually mean performance gear. */
+const ATHLETIC_WORDS = /athletic|activewear|running|gym|workout|training|sport|performance|dri.?fit|under ?armou?r|asics|hoka|legging|jogger|sweatpant|track ?(pant|jacket|suit)|jersey|compression|mesh|basketball|tennis|soccer|cleat|runner/i;
+function isAthletic(i){
+  if (i.athletic != null) return !!i.athletic;
+  return ATHLETIC_WORDS.test(i.name || '');
 }
 
 /* Pairs the person has rejected. Cheap, and it captures taste the math can't. */
@@ -993,6 +1032,14 @@ function paletteFit(rgb, tone){
    ============================================================ */
 const LAYERS = ['hoodie','zipup'];
 function byCat(c){ return S.items.filter(i => i.cat === c); }
+/* For a workout, use activewear if there is any in that category.
+   Fall back to everything so an empty drawer doesn't break the fit. */
+function poolFor(c, occ){
+  const all = byCat(c);
+  if (!occ || !occ.athletic) return all;
+  const fit = all.filter(isAthletic);
+  return fit.length ? fit : all;
+}
 function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 
 function scoreItem(item, occ, tone){
@@ -1004,13 +1051,15 @@ function scoreItem(item, occ, tone){
   const pScore = paletteFit(item.rgb, tone);
   const days = item.lastWorn ? (Date.now() - item.lastWorn) / 864e5 : 99;
   const fresh = days > 6 ? 1 : 0.45 + days * 0.09;
-  return fScore * 1.5 + wScore * 1.1 + pScore * 1.0 + fresh * 0.7;
+  let sc = fScore * 1.5 + wScore * 1.1 + pScore * 1.0 + fresh * 0.7;
+  if (occ.athletic) sc += isAthletic(item) ? 1.2 : -1.6;
+  return sc;
 }
 
 function buildOutfit(occ, tone, avoidKey){
-  const tops = byCat('top'), bottoms = byCat('bottom');
-  const shoes = byCat('shoes'), accs = byCat('acc'), socks = byCat('socks');
-  const hoodies = byCat('hoodie'), zips = byCat('zipup');
+  const tops = poolFor('top', occ), bottoms = poolFor('bottom', occ);
+  const shoes = poolFor('shoes', occ), accs = byCat('acc'), socks = poolFor('socks', occ);
+  const hoodies = poolFor('hoodie', occ), zips = poolFor('zipup', occ);
   if (!tops.length || !bottoms.length) return null;
 
   let best = null, bestScore = -1;
@@ -1039,8 +1088,10 @@ function buildOutfit(occ, tone, avoidKey){
         hsum += h; pairs++; if (h < worst) worst = h;
       }
     if (pairs) sc += (hsum / pairs) * 1.2 + worst * 1.6;
-    // one statement piece, not three
-    const bolds = set.filter(isBold).length;
+    // one statement piece, not three — socks and accessories are accents,
+    // they don't compete with a graphic tee
+    const BIG = ['top','bottom','hoodie','zipup'];
+    const bolds = set.filter(i => isBold(i) && BIG.indexOf(i.cat) >= 0).length;
     if (bolds > 1) sc -= (bolds - 1) * 1.5;
     // anything they've told us not to pair
     sc -= nopedPairs(set) * 3.5;
@@ -1054,7 +1105,11 @@ function buildOutfit(occ, tone, avoidKey){
 /* Given what's already on, what's the best thing for one empty slot? */
 function suggestFor(cat, worn, occ, tone){
   const cats = Array.isArray(cat) ? cat : [cat];
-  const pool = S.items.filter(i => cats.indexOf(i.cat) >= 0 && !worn.some(w => w.id === i.id));
+  let pool = S.items.filter(i => cats.indexOf(i.cat) >= 0 && !worn.some(w => w.id === i.id));
+  if (occ && occ.athletic){
+    const fit = pool.filter(isAthletic);
+    if (fit.length) pool = fit;
+  }
   if (!pool.length) return null;
   let best = null, bs = -1;
   for (const it of pool){
@@ -1073,7 +1128,7 @@ function suggestFor(cat, worn, occ, tone){
 function explain(set, occ, tone){
   const bits = [];
   const loud = set.filter(i => !isNeutral(i.rgb));
-  const bolds = set.filter(isBold);
+  const bolds = set.filter(i => isBold(i) && ['top','bottom','hoodie','zipup'].indexOf(i.cat) >= 0);
   if (bolds.length === 1) bits.push(`<b>${esc(bolds[0].name)}</b> is the statement, everything else stays quiet`);
   else if (loud.length === 0) bits.push('All neutrals, so nothing competes');
   else if (loud.length === 1) bits.push(`<b>${esc(loud[0].name)}</b> is the one piece carrying color`);
@@ -1241,23 +1296,7 @@ function renderToday(){
   $('#reroll').onclick = renderToday;
   $('#howBtn').onclick = () => howToWear(set);
   $('#aiFit').onclick = () => stylistPicksFit();
-  $('#nopeBtn').onclick = () => {
-    // blame the worst-matching pair in the fit and remember it
-    let worst = null, ws = 2;
-    for (let a = 0; a < set.length; a++)
-      for (let b = a + 1; b < set.length; b++){
-        const h = harmony(set[a].rgb, set[b].rgb);
-        const penalty = (isBold(set[a]) && isBold(set[b])) ? -0.4 : 0;
-        if (h + penalty < ws){ ws = h + penalty; worst = [set[a], set[b]]; }
-      }
-    if (worst){
-      const k = pairKey(worst[0].id, worst[1].id);
-      if (S.nope.indexOf(k) < 0) S.nope.push(k);
-      save();
-      toast(`Won't pair ${worst[0].name} with ${worst[1].name} again`);
-    }
-    renderToday();
-  };
+  $('#nopeBtn').onclick = () => openNopePick(set);
   $('#wearIt').onclick = () => {
     logWear(set);
     toast('Logged — it will rest for a few days');
@@ -1449,6 +1488,10 @@ function closeSheets(){ $('#scrim').classList.remove('on'); $$('.sheet').forEach
 
 function fillSeg(sel, v){ $$(sel + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
 function segStr(sel, dflt){ const b = $(sel + ' button[aria-pressed="true"]'); return b ? b.dataset.v : dflt; }
+function setTgl(sel, on){ $(sel).setAttribute('aria-checked', String(!!on)); }
+function getTgl(sel){ return $(sel).getAttribute('aria-checked') === 'true'; }
+$('#itemAth').onclick = () => setTgl('#itemAth', !getTgl('#itemAth'));
+$('#itemBold').onclick = () => setTgl('#itemBold', !getTgl('#itemBold'));
 function syncLen(){ $('#itemLenWrap').classList.toggle('hidden', segStr('#itemCat', 'top') !== 'socks'); }
 function segVal(sel){ const b = $(sel + ' button[aria-pressed="true"]'); return b ? +b.dataset.v : 3; }
 
@@ -1465,12 +1508,15 @@ function openItemSheet(item){
     $('#itemName').value = item.name;
     fillSeg('#itemCat', item.cat); fillSeg('#itemFormal', item.formal); fillSeg('#itemWarm', item.warm);
     fillSeg('#itemLen', item.len || 'crew');
+    setTgl('#itemAth', isAthletic(item));
+    setTgl('#itemBold', isBold(item));
   } else {
     pendingImg = null; pendingRGB = null;
     $('#itemPreviewWrap').classList.add('hidden');
     $('#itemName').value = '';
     fillSeg('#itemCat', 'top'); fillSeg('#itemFormal', 2); fillSeg('#itemWarm', 3);
     fillSeg('#itemLen', 'crew');
+    setTgl('#itemAth', false); setTgl('#itemBold', false);
   }
   syncLen();
   openSheet('#sheet-item');
@@ -1665,6 +1711,8 @@ function finishSingle(img, tag){
     if (tag.name) $('#itemName').value = String(tag.name).slice(0, 40);
     if (CATNAME[tag.cat]){ fillSeg('#itemCat', tag.cat); syncLen(); }
     if (tag.len && LENNAME[tag.len]) fillSeg('#itemLen', tag.len);
+    setTgl('#itemAth', tag.athletic === true);
+    setTgl('#itemBold', tag.bold === true);
     fillSeg('#itemFormal', clamp15(tag.formal));
     fillSeg('#itemWarm', clamp15(tag.warm));
   }
@@ -1708,6 +1756,8 @@ $('#saveItem').onclick = () => {
     warm: segVal('#itemWarm'),
     rgb: pendingRGB || [128,128,128],
     len: (catBtn && catBtn.dataset.v === 'socks') ? segStr('#itemLen', 'crew') : null,
+    athletic: getTgl('#itemAth'),
+    bold: getTgl('#itemBold'),
     img: pendingImg,
     lastWorn: editing ? editing.lastWorn : 0
   };
@@ -1760,7 +1810,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v3.1';
+const BUILD = 'v3.2';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -1980,6 +2030,9 @@ Reply with ONLY a JSON array. No prose, no markdown fences. Each element:
   "len": socks only, one of "noshow", "ankle", "crew", "knee",
   "bold": true if it's a statement piece — patterned, graphic-printed, logo-heavy
           or a loud saturated color. false for plain solids and neutrals.
+  "athletic": true if it's activewear — performance fabric, gym or running gear,
+          athletic-brand trainers, joggers, compression, jerseys, tanks. false for
+          everything you'd wear to a restaurant.
   "formal": 1-5 where 1=loungewear, 2=casual, 3=smart casual, 4=sharp, 5=formal,
   "warm": 1-5 where 1=tank/shorts, 3=mid weight, 5=heavy coat,
   "box": [x0, y0, x1, y1] bounding box, each value 0-1 relative to image size
@@ -2053,6 +2106,7 @@ function openReview(img, tags){
       formal: clamp15(t.formal), warm: clamp15(t.warm),
       len: LENNAME[t.len] ? t.len : null,
       bold: t.bold === true,
+      athletic: t.athletic === true,
       rgb: dominantColor(c), img: c.toDataURL('image/jpeg', 0.78), on: true
     });
   }
@@ -2081,7 +2135,7 @@ $('#addAll').onclick = () => {
   keep.forEach(r => S.items.push({
     id: uid(), name: (r.name || '').trim() || CATNAME[r.cat],
     cat: r.cat, formal: r.formal, warm: r.warm, len: r.cat === 'socks' ? (r.len || 'crew') : null,
-    bold: !!r.bold, rgb: r.rgb, img: r.img, lastWorn: 0
+    bold: !!r.bold, athletic: !!r.athletic, rgb: r.rgb, img: r.img, lastWorn: 0
   }));
   reviewItems = [];
   save(); closeSheets(); renderCloset();
@@ -2098,7 +2152,8 @@ function describe(i){
     ? (l > 0.75 ? 'light neutral' : l < 0.2 ? 'near black' : 'mid neutral')
     : `${Math.round(h)}° hue, ${Math.round(sat*100)}% sat, ${Math.round(l*100)}% light`;
   const len = i.cat === 'socks' && i.len ? ` | ${LENNAME[i.len] || i.len}` : '';
-  return `${i.id} | ${i.name} | ${CATNAME[i.cat]}${len} | formality ${i.formal}/5 | warmth ${i.warm}/5 | ${hex(i.rgb)} (${tone})`;
+  const tags = [isAthletic(i) ? 'activewear' : '', isBold(i) ? 'statement' : ''].filter(Boolean).join(', ');
+  return `${i.id} | ${i.name} | ${CATNAME[i.cat]}${len} | formality ${i.formal}/5 | warmth ${i.warm}/5 | ${hex(i.rgb)} (${tone})${tags ? ' | ' + tags : ''}`;
 }
 
 function stylistPrompt(worn, pool, occ, tone){
@@ -2549,6 +2604,50 @@ $('#gapsOpen').onclick = () => {
   openSheet('#sheet-gaps');
 };
 $('#closeGaps').onclick = closeSheets;
+
+/* ---- pick exactly which pieces clash ---- */
+let nopeSet = [], nopePicked = [];
+
+function renderNopePick(){
+  $('#nopeGrid').innerHTML = nopeSet.map(i =>
+    `<button class="tile ${nopePicked.indexOf(i.id) >= 0 ? 'sel' : ''}" data-id="${i.id}">
+       <img src="${i.img}" alt=""><span class="tick">✓</span><span class="nm">${esc(i.name)}</span></button>`
+  ).join('');
+  const n = nopePicked.length;
+  $('#nopeCount').textContent = n < 2 ? 'Pick at least two' : `${n} selected`;
+  $('#nopeSave').disabled = n < 2;
+}
+
+function openNopePick(set){
+  nopeSet = set.slice(); nopePicked = [];
+  renderNopePick();
+  openSheet('#sheet-nope');
+}
+
+$('#nopeGrid').addEventListener('click', e => {
+  const t = e.target.closest('.tile[data-id]'); if (!t) return;
+  const id = t.dataset.id;
+  if (nopePicked.indexOf(id) >= 0) nopePicked = nopePicked.filter(x => x !== id);
+  else nopePicked.push(id);
+  // toggle in place rather than rebuilding, so it doesn't flash
+  t.classList.toggle('sel');
+  const n = nopePicked.length;
+  $('#nopeCount').textContent = n < 2 ? 'Pick at least two' : `${n} selected`;
+  $('#nopeSave').disabled = n < 2;
+});
+
+$('#nopeSave').onclick = () => {
+  if (nopePicked.length < 2) return;
+  let added = 0;
+  for (let a = 0; a < nopePicked.length; a++)
+    for (let b = a + 1; b < nopePicked.length; b++){
+      const k = pairKey(nopePicked[a], nopePicked[b]);
+      if (S.nope.indexOf(k) < 0){ S.nope.push(k); added++; }
+    }
+  save(); closeSheets(); renderToday();
+  toast(added ? `Won't pair ${added === 1 ? 'those' : 'these'} again` : 'Already remembered');
+};
+$('#closeNopeSheet').onclick = closeSheets;
 
 /* ---- let the stylist build the whole fit, not just fill gaps ---- */
 async function stylistPicksFit(){
