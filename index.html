@@ -166,6 +166,19 @@ h2{
 .empty{
   text-align:center; padding:48px 22px; color:var(--ink-2);
 }
+/* A short page shouldn't leave the tab bar floating over a void — give
+   the content somewhere to end. */
+.screen.on{min-height:calc(100vh - 120px - var(--sat, 0px));}
+.placeholder{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; text-align:center;
+  min-height:230px; padding:28px 22px;
+  border:1.5px dashed var(--line-2); border-radius:var(--r-l);
+  color:var(--ink-3);
+}
+.placeholder svg{opacity:.5;}
+.placeholder b{display:block;font-size:15px;color:var(--ink-2);font-weight:600;}
+.placeholder span{font-size:13.5px;max-width:250px;}
 .empty h3{font-family:var(--display);font-size:20px;color:var(--ink);margin:0 0 6px;letter-spacing:-.01em;}
 .empty p{margin:0 0 18px;font-size:14.5px;}
 
@@ -824,9 +837,9 @@ const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.label]));
 
 /* Los Angeles, as a set of places you actually go */
 const OCCASIONS = [
-  {id:'home',    name:'Chill at home', formal:[1,2],  shoes:false, outer:'maybe', acc:'no',    warmShift:0,
+  {id:'home',    name:'Chill at home', formal:[1,2],  shoes:false, socks:'always', outer:'maybe', acc:'no',    warmShift:0,
    line:'Nothing to prove. Softest thing that still counts as an outfit.'},
-  {id:'workout', name:'Workout',       formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1, athletic:true,
+  {id:'workout', name:'Workout',       formal:[1,2],  shoes:true,  socks:'always', outer:'maybe', acc:'maybe', warmShift:-1, athletic:true,
    line:'You warm up fast \u2014 dress for ten minutes in, not the walk over.'},
   {id:'work',    name:'Work',          formal:[3,4],  shoes:true,  outer:'often', acc:'maybe', warmShift:1,
    line:'Offices run cold even when it is 80 outside — a layer earns its place.'},
@@ -838,7 +851,7 @@ const OCCASIONS = [
    line:'Patio heaters are a lie. Bring the layer.'},
   {id:'night',   name:'Night out',     formal:[3,5],  shoes:true,  outer:'maybe', acc:'often', warmShift:1,
    line:'Darker, sharper, and shoes you can stand in.'},
-  {id:'beach',   name:'Beach day',     formal:[1,2],  shoes:true,  outer:'often', acc:'often', warmShift:-1,
+  {id:'beach',   name:'Beach day',     formal:[1,2],  shoes:true,  socks:'no',     outer:'often', acc:'often', warmShift:-1,
    line:'It turns on you at 4pm. Pack the extra layer anyway.'},
   {id:'hike',    name:'Hike',          formal:[1,2],  shoes:true,  outer:'maybe', acc:'maybe', warmShift:-1,
    line:'Hot going up, cold at the top, sun the whole time.'},
@@ -847,6 +860,7 @@ const OCCASIONS = [
   {id:'gallery', name:'Gallery / show',formal:[3,4],  shoes:true,  outer:'maybe', acc:'often', warmShift:0,
    line:'Quiet colors, one loud detail.'}
 ];
+OCCASIONS.forEach(o => { if (!o.socks) o.socks = 'always'; });
 const OCC = Object.fromEntries(OCCASIONS.map(o => [o.id, o]));
 
 const TEMP_TARGET = {1:4, 2:3, 3:2, 4:1};
@@ -1093,7 +1107,7 @@ function buildOutfit(occ, tone, avoidKey){
   for (let trial = 0; trial < 420; trial++){
     const set = [pick(tops), pick(bottoms)];
     if (occ.shoes && shoes.length) set.push(pick(shoes));
-    if (occ.shoes && socks.length && occ.id !== 'beach' && Math.random() < (occ.id === 'workout' ? 0.95 : 0.8)) set.push(pick(socks));
+    if (socks.length && occ.socks !== 'no') set.push(pick(socks));
     const layers = hoodies.concat(zips);
     if (occ.outer !== 'no' && layers.length){
       const target = Math.max(1, Math.min(5, TEMP_TARGET[S.temp] + (occ.warmShift || 0)));
@@ -1106,7 +1120,11 @@ function buildOutfit(occ, tone, avoidKey){
     if (new Set(set.map(i => i.id)).size !== set.length) continue;
 
     const key = set.map(i => i.id).sort().join('|');
-    let sc = set.reduce((a, i) => a + scoreItem(i, occ, tone), 0) / set.length;
+    // socks and extras are minor — don't let them swing the fit's score
+    const major = set.filter(i => ['socks','acc'].indexOf(i.cat) < 0);
+    let sc = major.reduce((a, i) => a + scoreItem(i, occ, tone), 0) / (major.length || 1);
+    const minor = set.filter(i => ['socks','acc'].indexOf(i.cat) >= 0);
+    if (minor.length) sc += minor.reduce((a, i) => a + scoreItem(i, occ, tone), 0) / minor.length * 0.25;
     // worst pair matters more than the average — one clash ruins the fit
     let pairs = 0, hsum = 0, worst = 1;
     for (let a = 0; a < set.length; a++)
@@ -1426,20 +1444,31 @@ function renderTone(){
 
 function renderBuild(){
   const wrap = $('#buildPicked');
-  if (!S.picked.length){
-    wrap.innerHTML = `<p class="mini" style="margin:0">Nothing picked yet.</p>`;
+  const none = !S.picked.length;
+  $('#styleBtn').disabled = none;
+  $('#gapBtn').disabled = none;
+  if (none){
+    wrap.innerHTML = '';
+    $('#buildOut').innerHTML = `<div class="placeholder">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M12 3.4a2.1 2.1 0 1 0 1.6 3.45L12 8.2l7.9 5.1a2 2 0 0 1-1.1 3.66H5.2a2 2 0 0 1-1.1-3.66L12 8.2"/>
+      </svg>
+      <b>Nothing picked yet</b>
+      <span>Tap Choose pieces and select what you've already got on. I'll work out what's missing.</span>
+    </div>`;
   } else {
     const items = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean);
     wrap.innerHTML = `<div class="grid">${items.map(i => `<div class="tile"><img src="${i.img}" alt=""><span class="nm">${esc(i.name)}</span></div>`).join('')}</div>
       <button class="btn ghost sm" id="logFit" style="width:100%;margin-top:12px">Wore this</button>`;
     $('#logFit').onclick = () => { logWear(items); toast('Logged'); };
+    if ($('#buildOut').querySelector('.placeholder')) $('#buildOut').innerHTML = '';
   }
 }
 
 function runBuild(){
   const worn = S.picked.map(id => S.items.find(i => i.id === id)).filter(Boolean);
   const out = $('#buildOut');
-  if (!worn.length){ out.innerHTML = ''; return; }
+  if (!worn.length) return;   // the placeholder is already showing
   const occ = OCC[S.occasion];
   const tone = readTone(S.samples);
   const have = new Set(worn.map(i => i.cat));
@@ -1447,7 +1476,7 @@ function runBuild(){
   if (!have.has('top')) wants.push(['top']);
   if (!have.has('bottom')) wants.push(['bottom']);
   if (!have.has('shoes')) wants.push(['shoes']);
-  if (!have.has('socks') && occ.shoes && occ.id !== 'beach') wants.push(['socks']);
+  if (!have.has('socks') && occ.socks !== 'no') wants.push(['socks']);
   if (!have.has('hoodie') && !have.has('zipup') && S.temp <= 2) wants.push(LAYERS);
   if (!have.has('acc')) wants.push(['acc']);
 
@@ -1848,7 +1877,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v3.3';
+const BUILD = 'v3.6';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
@@ -2223,6 +2252,7 @@ Reply with ONLY this JSON, no prose or fences:
 
 Rules:
 - A complete outfit needs a top, a bottom and shoes unless they're at home.
+- Include socks unless it's a beach day — at home that means comfortable socks, no shoes.
 - Hoodie and Zip-up are both layers and only ONE is ever worn. Never suggest both.
 - Three additions maximum. Suggest a swap only when it clearly lifts the outfit.
 - Be specific about proportion, texture, color relationships and where the eye lands. No filler, no flattery.
@@ -2720,7 +2750,7 @@ Reply with ONLY this JSON, no prose or fences:
 }
 
 Rules:
-- A top, a bottom, and shoes unless they're at home. Socks if they're wearing shoes.
+- A top, a bottom, and shoes unless they're at home. Socks always, except at the beach.
 - ONE layer at most: a hoodie or a zip-up, never both.
 - ONE statement piece. If something is patterned or loud, everything else stays quiet.
 - Near-miss colors clash worse than opposites. Two different reds is a mistake; red with a neutral is not.
