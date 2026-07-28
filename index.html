@@ -255,6 +255,7 @@ h2{
   display:none;
 }
 .sheet.on{display:block;transform:none;}
+.sheet.has-foot.on{transform:none;}
 .grab{width:38px;height:4px;border-radius:99px;background:var(--line-2);margin:8px auto 14px;}
 .sheet h2{margin-bottom:14px;}
 .stack{display:flex;flex-direction:column;gap:18px;}
@@ -327,16 +328,33 @@ h2{
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:var(--ink-2);
 }
 .age.cold{background:var(--violet);color:#fff;}
+/* Sheets with a pinned footer: header and footer stay put, only the
+   middle scrolls. A sticky footer inside one scroll box let content
+   slide past it. */
+.sheet.has-foot{
+  display:none; flex-direction:column;
+  height:88vh; max-height:88vh;
+  overflow:hidden;
+  padding:8px 18px 0;
+}
+.sheet.has-foot.on{display:flex;}
+.sheet-head{flex:0 0 auto;}
+.sheet-body{
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-top:4px;
+  overscroll-behavior:contain;
+}
 .stickbar{
-  position:sticky; bottom:0; z-index:5;
+  flex:0 0 auto;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin:14px -18px calc(-26px - var(--sab, 6px));
+  margin:0 -18px;
   padding:12px 18px calc(12px + var(--sab, 6px));
-  background:color-mix(in srgb, var(--bg) 94%, transparent);
-  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  background:var(--bg);
   border-top:1px solid var(--line);
 }
-.stickbar .btn{flex:0 0 auto;width:auto;padding:11px 26px;}
+.stickbar .btn{flex:0 0 auto;width:auto;padding:12px 28px;}
+.stickbar .btn:disabled{opacity:.3;}
 .hidden{display:none!important;}
 /* sheet close affordances */
 .xbtn{
@@ -603,12 +621,17 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
   </div>
 </div>
 
-<div class="sheet" id="sheet-pick">
-  <div class="grab"></div>
-  <h2 style="margin-bottom:10px">What are you wearing?</h2>
-  <div class="chips" id="pickCats" style="padding:0 0 2px"></div>
-  <div class="wrap" style="padding:0">
-    <div class="grid" id="pickGrid" style="margin-top:4px"></div>
+<div class="sheet has-foot" id="sheet-pick">
+  <div class="sheet-head">
+    <div class="grab"></div>
+    <div class="spread" style="margin-bottom:10px">
+      <h2 style="min-width:0">What are you wearing?</h2>
+      <button class="xbtn" id="closePick" aria-label="Close">✕</button>
+    </div>
+    <div class="chips" id="pickCats" style="padding:0 0 8px"></div>
+  </div>
+  <div class="sheet-body">
+    <div class="grid" id="pickGrid"></div>
   </div>
   <div class="stickbar">
     <span class="mini" id="pickCount"></span>
@@ -616,14 +639,18 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
   </div>
 </div>
 
-<div class="sheet" id="sheet-nope">
-  <div class="grab"></div>
-  <div class="spread" style="margin-bottom:6px">
-    <h2 style="min-width:0">What doesn't work?</h2>
-    <button class="xbtn" id="closeNopeSheet" aria-label="Close">✕</button>
+<div class="sheet has-foot" id="sheet-nope">
+  <div class="sheet-head">
+    <div class="grab"></div>
+    <div class="spread" style="margin-bottom:6px">
+      <h2 style="min-width:0">What doesn't work?</h2>
+      <button class="xbtn" id="closeNopeSheet" aria-label="Close">✕</button>
+    </div>
+    <p class="mini" style="margin:0 0 10px">Tap the pieces that shouldn't go together. Pick two or more.</p>
   </div>
-  <p class="mini" style="margin:0 0 12px">Tap the pieces that shouldn't go together. Pick two or more.</p>
-  <div class="grid" id="nopeGrid"></div>
+  <div class="sheet-body">
+    <div class="grid" id="nopeGrid"></div>
+  </div>
   <div class="stickbar">
     <span class="mini" id="nopeCount"></span>
     <button class="btn sm" id="nopeSave">Never together</button>
@@ -1551,8 +1578,10 @@ function renderPick(){
     return on || !blocked.has(i.cat);
   });
   const n = S.picked.length;
-  $('#pickCount').textContent = n ? n + ' picked' : 'Tap what you have on';
-  const sheet = $('#sheet-pick'), top = sheet.scrollTop;
+  $('#pickCount').textContent = n === 0 ? 'Tap what you have on'
+    : n + ' piece' + (n === 1 ? '' : 's') + ' selected';
+  $('#pickDone').disabled = false;
+  const sheet = $('#sheet-pick .sheet-body'), top = sheet.scrollTop;
   $('#pickGrid').innerHTML = list.map(i =>
     `<button class="tile ${S.picked.indexOf(i.id) >= 0 ? 'sel' : ''}" data-id="${i.id}">
        <img src="${i.img}" alt=""><span class="tick">✓</span><span class="nm">${esc(i.name)}</span></button>`
@@ -1773,6 +1802,7 @@ $('#deleteItem').onclick = () => {
 };
 
 $('#pickBtn').onclick = openPickSheet;
+$('#closePick').onclick = closeSheets;
 $('#pickCats').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
   pickCat = b.dataset.c; renderPick();
@@ -1780,9 +1810,17 @@ $('#pickCats').addEventListener('click', e => {
 $('#pickGrid').addEventListener('click', e => {
   const t = e.target.closest('.tile[data-id]'); if (!t) return;
   const id = t.dataset.id;
-  if (S.picked.indexOf(id) >= 0) S.picked = S.picked.filter(x => x !== id);
+  const on = S.picked.indexOf(id) >= 0;
+  if (on) S.picked = S.picked.filter(x => x !== id);
   else S.picked.push(id);
+  // selecting a top hides the other tops, so the grid has to rebuild —
+  // but only when the category list actually changed
+  const before = blockedCats().size;
   renderPick();
+  if (before === blockedCats().size){
+    const el = $(`#pickGrid .tile[data-id="${id}"]`);
+    if (el) el.classList.toggle('sel', !on);
+  }
 });
 $('#pickDone').onclick = () => { closeSheets(); renderBuild(); runBuild(); };
 $('#gapBtn').onclick = runBuild;
@@ -1810,7 +1848,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v3.2';
+const BUILD = 'v3.3';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
