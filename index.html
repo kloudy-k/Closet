@@ -166,13 +166,17 @@ h2{
 .empty{
   text-align:center; padding:48px 22px; color:var(--ink-2);
 }
-/* A short page shouldn't leave the tab bar floating over a void — give
-   the content somewhere to end. */
-.screen.on{min-height:calc(100vh - 120px - var(--sat, 0px));}
+/* A short page shouldn't leave the tab bar floating over a void. The Build
+   tab is a flex column so its empty state stretches down to meet the bar. */
+.screen.on{min-height:calc(100dvh - 76px - var(--sat, 0px) - var(--sab, 6px));}
+#s-build.on{display:flex; flex-direction:column;}
+#s-build .wrap{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+#buildOut{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+#buildOut .placeholder{flex:1 1 auto;}
 .placeholder{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:10px; text-align:center;
-  min-height:230px; padding:28px 22px;
+  min-height:200px; padding:28px 22px; margin-bottom:6px;
   border:1.5px dashed var(--line-2); border-radius:var(--r-l);
   color:var(--ink-3);
 }
@@ -1877,7 +1881,7 @@ $('#clearToneBtn').onclick = () => {
   save(); renderTone(); toast('Samples cleared');
 };
 
-const BUILD = 'v3.6';
+const BUILD = 'v3.7';
 
 /* Export the whole closet as one JSON file. On iOS the share sheet is the
    nicest route (saves straight to Files); the anchor is the fallback. */
